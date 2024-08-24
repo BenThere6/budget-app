@@ -18,42 +18,30 @@ async function accessSpreadsheet() {
     // Create a Google Sheets API instance
     const sheets = google.sheets({ version: 'v4', auth: client });
 
-    // Define your spreadsheet ID and the range you want to access
+    // Define your spreadsheet ID
     const spreadsheetId = '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs'; // Replace with your actual Google Sheets ID
-    const range = 'Dashboard!A1:H40'; // Replace with your desired range
 
-    // Reading data from Google Sheets
-    const response = await sheets.spreadsheets.values.get({
+    // Define the ranges you want to pull data from
+    const ranges = [
+      'Dashboard!C19', // Food budget remainder
+      'Dashboard!E19', // Shopping budget remainder
+      'Dashboard!G19', // Gas budget remainder
+      'Dashboard!C23', // Other budget remainder
+    ];
+
+    // Fetch the data for the specified ranges
+    const response = await sheets.spreadsheets.values.batchGet({
       spreadsheetId: spreadsheetId,
-      range: range,
+      ranges: ranges,
     });
 
-    const rows = response.data.values;
-    if (rows.length) {
-      console.log('Data from sheet:');
-      rows.map((row) => {
-        console.log(`${row.join(', ')}`);
-      });
-    } else {
-      console.log('No data found.');
-    }
+    const values = response.data.valueRanges.map(range => range.values ? range.values[0][0] : 'No data');
 
-    // Writing data to Google Sheets
-    // const values = [
-    //   ['New Data 1', 'New Data 2'],
-    //   ['More Data 1', 'More Data 2'],
-    // ];
-    // const resource = {
-    //   values,
-    // };
-    // const writeResponse = await sheets.spreadsheets.values.update({
-    //   spreadsheetId: spreadsheetId,
-    //   range: 'Sheet1!A2', // Adjust the range to where you want to write
-    //   valueInputOption: 'RAW',
-    //   resource,
-    // });
-
-    // console.log('%d cells updated.', writeResponse.data.updatedCells);
+    console.log('Budget Remainders:');
+    console.log(`Food: ${values[0]}`);
+    console.log(`Shopping: ${values[1]}`);
+    console.log(`Gas: ${values[2]}`);
+    console.log(`Other: ${values[3]}`);
   } catch (err) {
     console.error('Error accessing the Google Sheets API:', err);
   }
