@@ -5,7 +5,7 @@ const cheerio = require('cheerio');
 const { simpleParser } = require('mailparser');
 require('dotenv').config();
 const cors = require('cors');
- 
+
 // Initialize Express app
 const app = express();
 const port = process.env.PORT || 3009;
@@ -282,28 +282,28 @@ app.get('/savings', async (req, res) => {
 // Endpoint to save a keyword and category
 app.post('/save-keyword', async (req, res) => {
     const { keyword, category } = req.body;
-  
+
     if (!keyword || !category) {
-      return res.status(400).json({ error: 'Keyword and category are required.' });
+        return res.status(400).json({ error: 'Keyword and category are required.' });
     }
-  
+
     const sheets = google.sheets({ version: 'v4', auth: client });
-    
+
     try {
-      await sheets.spreadsheets.values.append({
-        spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
-        range: 'Keywords!A:B',
-        valueInputOption: 'RAW',
-        resource: {
-          values: [[keyword, category]],
-        },
-      });
-      res.status(200).json({ message: 'Keyword and category saved successfully.' });
+        await sheets.spreadsheets.values.append({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            range: 'Keywords!A:B',
+            valueInputOption: 'RAW',
+            resource: {
+                values: [[keyword, category]],
+            },
+        });
+        res.status(200).json({ message: 'Keyword and category saved successfully.' });
     } catch (error) {
-      console.error('Error saving keyword and category:', error);
-      res.status(500).json({ error: 'Failed to save keyword and category.' });
+        console.error('Error saving keyword and category:', error);
+        res.status(500).json({ error: 'Failed to save keyword and category.' });
     }
-});  
+});
 
 // Function to get categories from the Google Sheets
 async function getCategories() {
@@ -330,6 +330,87 @@ app.get('/categories', async (req, res) => {
         res.json(categories);
     } else {
         res.status(500).json({ error: 'Failed to fetch categories' });
+    }
+});
+
+// Function to get uncategorized transactions from the Google Sheets
+async function getUncategorizedTransactions() {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+    try {
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            range: 'Uncategorized!A:D', // Adjust the range if necessary
+        });
+
+        // Map the data to an array of objects
+        const transactions = response.data.values.map((row, index) => ({
+            id: index + 1,
+            date: row[0],
+            details: row[1],
+            amount: row[2],
+            categorized: row[3] === 'true',
+        }));
+
+        return transactions;
+    } catch (error) {
+        console.error('Error fetching uncategorized transactions:', error);
+        return [];
+    }
+}
+
+// Endpoint to get uncategorized transactions
+app.get('/uncategorized-transactions', async (req, res) => {
+    const transactions = await getUncategorizedTransactions();
+    if (transactions.length > 0) {
+        res.json(transactions);
+    } else {
+        res.status(500).json({ error: 'Failed to fetch uncategorized transactions' });
+    }
+});
+
+// Function to delete an uncategorized transaction by row number
+async function deleteUncategorizedTransaction(rowNumber) {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+    try {
+        const request = {
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            resource: {
+                requests: [
+                    {
+                        deleteDimension: {
+                            range: {
+                                sheetId: 123456789, // Replace with the actual sheetId for 'Uncategorized'
+                                dimension: 'ROWS',
+                                startIndex: rowNumber - 1, // Row numbers are 1-based, API expects 0-based index
+                                endIndex: rowNumber,
+                            },
+                        },
+                    },
+                ],
+            },
+        };
+        await sheets.spreadsheets.batchUpdate(request);
+        return { success: true };
+    } catch (error) {
+        console.error('Error deleting uncategorized transaction:', error);
+        return { success: false, error };
+    }
+}
+
+// Endpoint to delete an uncategorized transaction
+app.delete('/uncategorized-transactions/:rowNumber', async (req, res) => {
+    const rowNumber = parseInt(req.params.rowNumber, 10);
+
+    if (isNaN(rowNumber) || rowNumber <= 0) {
+        return res.status(400).json({ error: 'Invalid row number' });
+    }
+
+    const result = await deleteUncategorizedTransaction(rowNumber);
+
+    if (result.success) {
+        res.json({ message: 'Transaction deleted successfully' });
+    } else {
+        res.status(500).json({ error: 'Failed to delete transaction', details: result.error });
     }
 });
 
