@@ -5,6 +5,7 @@ const cheerio = require('cheerio');
 const { simpleParser } = require('mailparser');
 const keys = require('./service-account-key.json');
 require('dotenv').config();
+const cors = require('cors');
 
 // Initialize Express app
 const app = express();
@@ -12,6 +13,8 @@ const port = 3009;
 
 // Middleware to parse JSON bodies
 app.use(express.json());
+
+app.use(cors());
 
 // Set up the JWT client using the service account key
 const client = new google.auth.JWT(
@@ -207,6 +210,73 @@ async function processEmails() {
         console.error('Error during automatic email check:', err);
     }
 }
+
+// Function to get budget data
+async function getBudgetData() {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+    try {
+        const response = await sheets.spreadsheets.values.batchGet({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            ranges: ['Dashboard!C19', 'Dashboard!E19', 'Dashboard!G19', 'Dashboard!C23'], // Adjust the ranges if necessary
+        });
+        return {
+            food: response.data.valueRanges[0].values[0][0],
+            shopping: response.data.valueRanges[1].values[0][0],
+            gas: response.data.valueRanges[2].values[0][0],
+            other: response.data.valueRanges[3].values[0][0],
+        };
+    } catch (error) {
+        console.error('Error fetching budget data:', error);
+        return null;
+    }
+}
+
+// Endpoint to get budget data
+app.get('/budget', async (req, res) => {
+    const budgetData = await getBudgetData();
+    if (budgetData) {
+        res.json(budgetData);
+    } else {
+        res.status(500).json({ error: 'Failed to fetch budget data' });
+    }
+});
+
+// Function to get savings data
+async function getSavingsData() {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+    try {
+        const response = await sheets.spreadsheets.values.batchGet({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            ranges: [
+                'Dashboard!C31', 'Dashboard!E31', 'Dashboard!G31',
+                'Dashboard!C34', 'Dashboard!E34', 'Dashboard!G34',
+                'Dashboard!C37'
+            ], // Adjust the ranges if necessary
+        });
+        return {
+            emergency: response.data.valueRanges[0].values[0][0],
+            general: response.data.valueRanges[1].values[0][0],
+            future: response.data.valueRanges[2].values[0][0],
+            treatYoSelf: response.data.valueRanges[3].values[0][0],
+            vehicle: response.data.valueRanges[4].values[0][0],
+            giftsDonations: response.data.valueRanges[5].values[0][0],
+            travelVacation: response.data.valueRanges[6].values[0][0],
+        };
+    } catch (error) {
+        console.error('Error fetching savings data:', error);
+        return null;
+    }
+}
+
+// Endpoint to get savings data
+app.get('/savings', async (req, res) => {
+    const savingsData = await getSavingsData();
+    if (savingsData) {
+        res.json(savingsData);
+    } else {
+        res.status(500).json({ error: 'Failed to fetch savings data' });
+    }
+});
 
 // Start the server and initiate email checking immediately
 app.listen(port, () => {
