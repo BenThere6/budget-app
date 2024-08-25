@@ -132,14 +132,14 @@ async function checkEmails() {
                         );
 
                         // Mark message for deletion after processing
-                        // msg.once('attributes', attrs => {
-                        //     const { uid } = attrs;
-                        //     mail.addFlags(uid, '\\Deleted', err => {
-                        //         if (err) {
-                        //             console.error('Error marking email for deletion:', err);
-                        //         }
-                        //     });
-                        // });
+                        msg.once('attributes', attrs => {
+                            const { uid } = attrs;
+                            mail.addFlags(uid, '\\Deleted', err => {
+                                if (err) {
+                                    console.error('Error marking email for deletion:', err);
+                                }
+                            });
+                        });
                     });
 
                     fetch.once('end', async () => {
