@@ -176,10 +176,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     transactionDetails: {
-        flexShrink: 1,
-        maxWidth: '60%',
+        flex: 1, // This allows the details to take up remaining space
+        marginRight: 10, // Add some space between details and amount
     },
     transactionAmount: {
-        marginRight: 10,
+        width: 70, // Set a fixed width to ensure alignment
+        textAlign: 'left', // Align the text to the right within its box
     },
 });
