@@ -1,5 +1,13 @@
+const express = require('express');
 const { google } = require('googleapis');
 const keys = require('./service-account-key.json'); // Replace with the path to your JSON file
+
+// Initialize Express app
+const app = express();
+const port = 3000;
+
+// Middleware to parse JSON bodies
+app.use(express.json());
 
 // Set up the JWT client using the service account key
 const client = new google.auth.JWT(
@@ -9,7 +17,7 @@ const client = new google.auth.JWT(
   ['https://www.googleapis.com/auth/spreadsheets'] // This scope gives full access to the Google Sheets API
 );
 
-// Function to access Google Sheets and retrieve data
+// Function to access Google Sheets and retrieve budget data
 async function accessSpreadsheet() {
   try {
     // Authenticate the JWT client
@@ -37,17 +45,19 @@ async function accessSpreadsheet() {
 
     const values = response.data.valueRanges.map(range => range.values ? range.values[0][0] : 'No data');
 
-    console.log('Budget Remainders:');
-    console.log(`Food: ${values[0]}`);
-    console.log(`Shopping: ${values[1]}`);
-    console.log(`Gas: ${values[2]}`);
-    console.log(`Other: ${values[3]}`);
+    return {
+      food: values[0],
+      shopping: values[1],
+      gas: values[2],
+      other: values[3]
+    };
   } catch (err) {
     console.error('Error accessing the Google Sheets API:', err);
+    throw err;
   }
 }
 
-// Function to add a new transaction
+// Function to add a new transaction to Google Sheets
 async function addTransaction(date, category, amount, details) {
   try {
     // Authenticate the JWT client
@@ -87,11 +97,40 @@ async function addTransaction(date, category, amount, details) {
       resource: resource,
     });
 
-    console.log(`Transaction added. ${writeResponse.data.updatedCells} cells updated.`);
+    return `Transaction added. ${writeResponse.data.updatedCells} cells updated.`;
   } catch (err) {
     console.error('Error adding transaction to Google Sheets:', err);
+    throw err;
   }
 }
 
-// Call the function to read the budget data
-accessSpreadsheet();
+// Route to get budget data
+app.get('/budget', async (req, res) => {
+  try {
+    const budgetData = await accessSpreadsheet();
+    res.json(budgetData);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to retrieve budget data' });
+  }
+});
+
+// Route to add a new transaction
+app.post('/transaction', async (req, res) => {
+  const { date, category, amount, details } = req.body;
+
+  if (!date || !category || !amount) {
+    return res.status(400).json({ error: 'Date, category, and amount are required' });
+  }
+
+  try {
+    const result = await addTransaction(date, category, amount, details);
+    res.json({ message: result });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to add transaction' });
+  }
+});
+
+// Start the server
+app.listen(port, () => {
+  console.log(`Server running on http://localhost:${port}`);
+});
