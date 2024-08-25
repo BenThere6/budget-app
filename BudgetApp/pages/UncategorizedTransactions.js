@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, Button, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, Button, Alert, Platform } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 
 export default function UncategorizedTransactions() {
@@ -8,7 +8,6 @@ export default function UncategorizedTransactions() {
     const [categories, setCategories] = useState([]);
     const [transactions, setTransactions] = useState([]);
 
-    // Fetch categories on component mount
     useEffect(() => {
         const fetchCategories = async () => {
             try {
@@ -23,7 +22,6 @@ export default function UncategorizedTransactions() {
         fetchCategories();
     }, []);
 
-    // Fetch uncategorized transactions on component mount
     useEffect(() => {
         const fetchUncategorizedTransactions = async () => {
             try {
@@ -107,7 +105,7 @@ export default function UncategorizedTransactions() {
             <Text style={styles.transactionAmount}>{`$${item.amount}`}</Text>
             <Button title="Delete" color="red" onPress={() => confirmDelete(item.id)} />
         </View>
-    );  
+    );
 
     return (
         <View style={styles.container}>
@@ -118,16 +116,18 @@ export default function UncategorizedTransactions() {
                     value={keyword}
                     onChangeText={setKeyword}
                 />
-                <Picker
-                    selectedValue={category}
-                    style={styles.input}
-                    onValueChange={(itemValue) => setCategory(itemValue)}
-                >
-                    <Picker.Item label="Select a Category" value="" />
-                    {categories.map((cat, index) => (
-                        <Picker.Item key={index} label={cat} value={cat} />
-                    ))}
-                </Picker>
+                <View style={styles.pickerWrapper}>
+                    <Picker
+                        selectedValue={category}
+                        style={styles.picker}
+                        onValueChange={(itemValue) => setCategory(itemValue)}
+                    >
+                        <Picker.Item label="Select a Category" value="" />
+                        {categories.map((cat, index) => (
+                            <Picker.Item key={index} label={cat} value={cat} />
+                        ))}
+                    </Picker>
+                </View>
                 <Button title="Save Keyword & Category" onPress={handleSave} />
             </View>
             <FlatList
@@ -155,6 +155,15 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         paddingLeft: 8,
     },
+    pickerWrapper: {
+        marginBottom: 170,
+        height: 40, // Standard height for input field
+        justifyContent: 'center',
+    },
+    picker: {
+        height: 40,
+        width: '100%',
+    },
     transactionList: {
         flexGrow: 1,
     },
@@ -168,7 +177,7 @@ const styles = StyleSheet.create({
     },
     transactionDetails: {
         flexShrink: 1,
-        maxWidth: '60%', // Adjust this value based on your layout needs
+        maxWidth: '60%',
     },
     transactionAmount: {
         marginRight: 10,
