@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, Picker, Button } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, Button } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 
 export default function UncategorizedTransactions() {
     const [keyword, setKeyword] = useState('');
@@ -7,7 +8,6 @@ export default function UncategorizedTransactions() {
     const [categories, setCategories] = useState([]);
 
     useEffect(() => {
-        // Fetch categories from the backend
         const fetchCategories = async () => {
             try {
                 const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/categories');
