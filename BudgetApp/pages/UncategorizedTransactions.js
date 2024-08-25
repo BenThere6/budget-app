@@ -105,53 +105,7 @@ export default function UncategorizedTransactions() {
             <Text>{`Amount: $${item.amount}`}</Text>
             <Button title="Delete" color="red" onPress={() => confirmDelete(item.id)} />
         </View>
-    );
-
-    async function deleteUncategorizedTransaction(rowIndex) {
-        const sheets = google.sheets({ version: 'v4', auth: client });
-    
-        // Get the sheetId for the 'Uncategorized' sheet
-        const sheetId = await getSheetId('Uncategorized');
-        if (!sheetId) {
-            console.error('Failed to retrieve the sheet ID.');
-            return;
-        }
-    
-        try {
-            await sheets.spreadsheets.batchUpdate({
-                spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
-                resource: {
-                    requests: [
-                        {
-                            deleteDimension: {
-                                range: {
-                                    sheetId: sheetId,
-                                    dimension: 'ROWS',
-                                    startIndex: rowIndex - 1, // Assuming rowIndex starts from 1
-                                    endIndex: rowIndex,
-                                },
-                            },
-                        },
-                    ],
-                },
-            });
-            console.log(`Row ${rowIndex} deleted successfully.`);
-        } catch (error) {
-            console.error('Error deleting uncategorized transaction:', error);
-        }
-    }    
-
-    app.delete('/uncategorized-transactions/:rowIndex', async (req, res) => {
-        const { rowIndex } = req.params;
-    
-        try {
-            await deleteUncategorizedTransaction(parseInt(rowIndex));
-            res.status(200).json({ message: 'Transaction deleted successfully.' });
-        } catch (error) {
-            console.error('Error deleting uncategorized transaction:', error);
-            res.status(500).json({ error: 'Failed to delete transaction.' });
-        }
-    });    
+    );    
 
     return (
         <View style={styles.container}>

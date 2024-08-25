@@ -369,48 +369,49 @@ app.get('/uncategorized-transactions', async (req, res) => {
 });
 
 // Function to delete an uncategorized transaction by row number
-async function deleteUncategorizedTransaction(rowNumber) {
+async function deleteUncategorizedTransaction(rowIndex) {
     const sheets = google.sheets({ version: 'v4', auth: client });
+
+    // Get the sheetId for the 'Uncategorized' sheet
+    const sheetId = await getSheetId('Uncategorized');
+    if (!sheetId) {
+        console.error('Failed to retrieve the sheet ID.');
+        return;
+    }
+
     try {
-        const request = {
+        await sheets.spreadsheets.batchUpdate({
             spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
             resource: {
                 requests: [
                     {
                         deleteDimension: {
                             range: {
-                                sheetId: 123456789, // Replace with the actual sheetId for 'Uncategorized'
+                                sheetId: sheetId,
                                 dimension: 'ROWS',
-                                startIndex: rowNumber - 1, // Row numbers are 1-based, API expects 0-based index
-                                endIndex: rowNumber,
+                                startIndex: rowIndex - 1, // Assuming rowIndex starts from 1
+                                endIndex: rowIndex,
                             },
                         },
                     },
                 ],
             },
-        };
-        await sheets.spreadsheets.batchUpdate(request);
-        return { success: true };
+        });
+        console.log(`Row ${rowIndex} deleted successfully.`);
     } catch (error) {
         console.error('Error deleting uncategorized transaction:', error);
-        return { success: false, error };
     }
-}
+}    
 
-// Endpoint to delete an uncategorized transaction
-app.delete('/uncategorized-transactions/:rowNumber', async (req, res) => {
-    const rowNumber = parseInt(req.params.rowNumber, 10);
+app.delete('/uncategorized-transactions/:rowIndex', async (req, res) => {
+    const { rowIndex } = req.params;
 
-    if (isNaN(rowNumber) || rowNumber <= 0) {
-        return res.status(400).json({ error: 'Invalid row number' });
-    }
-
-    const result = await deleteUncategorizedTransaction(rowNumber);
-
-    if (result.success) {
-        res.json({ message: 'Transaction deleted successfully' });
-    } else {
-        res.status(500).json({ error: 'Failed to delete transaction', details: result.error });
+    try {
+        await deleteUncategorizedTransaction(parseInt(rowIndex));
+        res.status(200).json({ message: 'Transaction deleted successfully.' });
+    } catch (error) {
+        console.error('Error deleting uncategorized transaction:', error);
+        res.status(500).json({ error: 'Failed to delete transaction.' });
     }
 });
 
