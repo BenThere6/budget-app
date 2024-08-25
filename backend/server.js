@@ -3,24 +3,32 @@ const { google } = require('googleapis');
 const imap = require('imap');
 const cheerio = require('cheerio');
 const { simpleParser } = require('mailparser');
-const keys = require('./service-account-key.json');
 require('dotenv').config();
 const cors = require('cors');
 
 // Initialize Express app
 const app = express();
-const port = 3009;
+const port = process.env.PORT || 3009;
 
 // Middleware to parse JSON bodies
 app.use(express.json());
-
 app.use(cors());
+
+// Use environment variable for Google service account key
+let serviceAccountKey;
+
+if (process.env.NODE_ENV === 'production') {
+    serviceAccountKey = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+} else {
+    // In development, load the key from a local file
+    serviceAccountKey = require('./service-account-key.json');
+}
 
 // Set up the JWT client using the service account key
 const client = new google.auth.JWT(
-    keys.client_email,
+    serviceAccountKey.client_email,
     null,
-    keys.private_key,
+    serviceAccountKey.private_key.replace(/\\n/g, '\n'),
     ['https://www.googleapis.com/auth/spreadsheets'] // This scope gives full access to the Google Sheets API
 );
 
@@ -40,7 +48,7 @@ async function getKeywords() {
     try {
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
-            range: 'Keywords!A:B', // Adjust the range if necessary
+            range: 'Keywords!A:B',
         });
         return response.data.values; // Returns an array of [keyword, category]
     } catch (error) {
@@ -55,7 +63,7 @@ async function addTransaction(date, details, amount, category) {
     try {
         await sheets.spreadsheets.values.append({
             spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
-            range: 'Transactions!A:D', // Adjust the range if necessary
+            range: 'Transactions!A:D',
             valueInputOption: 'RAW',
             resource: {
                 values: [[date, category, amount, details]],
@@ -72,7 +80,7 @@ async function addUncategorizedTransaction(date, details, amount) {
     try {
         await sheets.spreadsheets.values.append({
             spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
-            range: 'Uncategorized!A:D', // Adjust the range if necessary
+            range: 'Uncategorized!A:D',
             valueInputOption: 'RAW',
             resource: {
                 values: [[date, details, amount, 'false']],
@@ -135,8 +143,8 @@ async function checkEmails() {
                     });
 
                     fetch.once('end', async () => {
-                        await Promise.all(parsePromises); // Ensure all parsing is complete
-                        mail.expunge(); // Permanently remove the deleted messages
+                        await Promise.all(parsePromises);
+                        mail.expunge();
                         mail.end();
                         resolve(transactions);
                     });
@@ -158,23 +166,16 @@ function parseTransactionDetails(html) {
     const $ = cheerio.load(html);
     const transactions = [];
 
-    // Find the table that contains the transaction rows
     $('table.transactions tbody tr.transaction-row').each((index, element) => {
-        // Extract the date
         const dateRaw = $(element).find('td.date').text().trim().replace(/\s+/g, ' ');
 
-        // Format the date
         const [month, day, year] = dateRaw.match(/\b[A-Z][a-z]+|\d{2,4}/g);
-        const monthNumber = new Date(`${month} 1`).getMonth() + 1; // Convert month name to number
+        const monthNumber = new Date(`${month} 1`).getMonth() + 1;
         const formattedDate = `${monthNumber}/${day}/${year.slice(-2)}`;
 
-        // Extract the transaction details
         const details = $(element).find('td.details').text().trim();
-
-        // Extract the amount and format it
         let amount = $(element).find('td.amount').text().trim();
 
-        // Remove any parentheses and ensure it has two decimal places
         amount = parseFloat(amount.replace(/[()$]/g, '')).toFixed(2);
 
         transactions.push({ date: formattedDate, details, amount });
@@ -194,14 +195,14 @@ async function processEmails() {
             let matched = false;
             for (const [keyword, category] of keywords) {
                 if (transaction.details.includes(keyword)) {
-                    await addTransaction(transaction.date, transaction.details, transaction.amount, category); // Ensure this is awaited
+                    await addTransaction(transaction.date, transaction.details, transaction.amount, category);
                     console.log(`Categorized transaction found and added: ${transaction.details}`);
                     matched = true;
                     break;
                 }
             }
             if (!matched) {
-                await addUncategorizedTransaction(transaction.date, transaction.details, transaction.amount); // Ensure this is awaited
+                await addUncategorizedTransaction(transaction.date, transaction.details, transaction.amount);
                 console.log(`Uncategorized transaction found and added: ${transaction.details}`);
             }
         }
@@ -217,7 +218,7 @@ async function getBudgetData() {
     try {
         const response = await sheets.spreadsheets.values.batchGet({
             spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
-            ranges: ['Dashboard!C19', 'Dashboard!E19', 'Dashboard!G19', 'Dashboard!C23'], // Adjust the ranges if necessary
+            ranges: ['Dashboard!C19', 'Dashboard!E19', 'Dashboard!G19', 'Dashboard!C23'],
         });
         return {
             food: response.data.valueRanges[0].values[0][0],
@@ -251,7 +252,7 @@ async function getSavingsData() {
                 'Dashboard!C31', 'Dashboard!E31', 'Dashboard!G31',
                 'Dashboard!C34', 'Dashboard!E34', 'Dashboard!G34',
                 'Dashboard!C37'
-            ], // Adjust the ranges if necessary
+            ],
         });
         return {
             emergency: response.data.valueRanges[0].values[0][0],
@@ -278,6 +279,7 @@ app.get('/savings', async (req, res) => {
     }
 });
 
+// Endpoint to save a keyword and category
 app.post('/save-keyword', async (req, res) => {
     const { keyword, category } = req.body;
   
@@ -301,7 +303,7 @@ app.post('/save-keyword', async (req, res) => {
       console.error('Error saving keyword and category:', error);
       res.status(500).json({ error: 'Failed to save keyword and category.' });
     }
-  });  
+});  
 
 // Start the server and initiate email checking immediately
 app.listen(port, () => {
