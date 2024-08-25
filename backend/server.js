@@ -368,6 +368,22 @@ app.get('/uncategorized-transactions', async (req, res) => {
     }
 });
 
+async function getSheetId(sheetName) {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+
+    try {
+        const response = await sheets.spreadsheets.get({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+        });
+
+        const sheet = response.data.sheets.find(sheet => sheet.properties.title === sheetName);
+        return sheet ? sheet.properties.sheetId : null;
+    } catch (error) {
+        console.error(`Error getting sheet ID for "${sheetName}":`, error);
+        return null;
+    }
+}
+
 // Function to delete an uncategorized transaction by row number
 async function deleteUncategorizedTransaction(rowIndex) {
     const sheets = google.sheets({ version: 'v4', auth: client });
@@ -400,8 +416,9 @@ async function deleteUncategorizedTransaction(rowIndex) {
         console.log(`Row ${rowIndex} deleted successfully.`);
     } catch (error) {
         console.error('Error deleting uncategorized transaction:', error);
+        throw error; // Rethrow error to handle it in the calling function
     }
-}    
+}
 
 app.delete('/uncategorized-transactions/:rowIndex', async (req, res) => {
     const { rowIndex } = req.params;
