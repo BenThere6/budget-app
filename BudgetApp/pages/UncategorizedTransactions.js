@@ -101,11 +101,13 @@ export default function UncategorizedTransactions() {
 
     const renderTransaction = ({ item }) => (
         <View style={styles.transactionItem}>
-            <Text>{`Details: ${item.details}`}</Text>
-            <Text>{`Amount: $${item.amount}`}</Text>
+            <Text style={styles.transactionDetails}>
+                {item.details.length > 50 ? `${item.details.substring(0, 50)}...` : item.details}
+            </Text>
+            <Text style={styles.transactionAmount}>{`$${item.amount}`}</Text>
             <Button title="Delete" color="red" onPress={() => confirmDelete(item.id)} />
         </View>
-    );    
+    );  
 
     return (
         <View style={styles.container}>
@@ -163,5 +165,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+    },
+    transactionDetails: {
+        flexShrink: 1,
+        maxWidth: '60%', // Adjust this value based on your layout needs
+    },
+    transactionAmount: {
+        marginRight: 10,
     },
 });
