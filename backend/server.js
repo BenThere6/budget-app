@@ -31,8 +31,57 @@ const imapConfig = {
     tlsOptions: { rejectUnauthorized: false },
 };
 
+// Function to get all keywords from the Keywords tab
+async function getKeywords() {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+    try {
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            range: 'Keywords!A:B', // Adjust the range if necessary
+        });
+        return response.data.values; // Returns an array of [keyword, category]
+    } catch (error) {
+        console.error('Error fetching keywords:', error);
+        return [];
+    }
+}
+
+// Function to add a categorized transaction
+async function addTransaction(date, details, amount, category) {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+    try {
+        await sheets.spreadsheets.values.append({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            range: 'Transactions!A:D', // Adjust the range if necessary
+            valueInputOption: 'RAW',
+            resource: {
+                values: [[date, category, amount, details]],
+            },
+        });
+    } catch (error) {
+        console.error('Error adding categorized transaction:', error);
+    }
+}
+
+// Function to add an uncategorized transaction
+async function addUncategorizedTransaction(date, details, amount) {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+    try {
+        await sheets.spreadsheets.values.append({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            range: 'Uncategorized!A:D', // Adjust the range if necessary
+            valueInputOption: 'RAW',
+            resource: {
+                values: [[date, details, amount, 'false']],
+            },
+        });
+    } catch (error) {
+        console.error('Error adding uncategorized transaction:', error);
+    }
+}
+
 // Function to check emails
-function checkEmails() {
+async function checkEmails() {
     return new Promise((resolve, reject) => {
         const mail = new imap(imapConfig);
 
@@ -44,8 +93,6 @@ function checkEmails() {
                     }
 
                     if (!results || !results.length) {
-                        console.log('No emails found.');
-                        mail.end();
                         return resolve([]);
                     }
 
@@ -59,7 +106,6 @@ function checkEmails() {
                                 msg.on('body', stream => {
                                     simpleParser(stream, async (err, parsed) => {
                                         if (err) {
-                                            console.error('Error parsing email:', err);
                                             return reject(err);
                                         }
 
@@ -94,6 +140,7 @@ function checkEmails() {
 }
 
 // Function to parse transaction details from the email HTML content
+// Function to parse transaction details from the email HTML content
 function parseTransactionDetails(html) {
     const $ = cheerio.load(html);
     const transactions = [];
@@ -111,8 +158,11 @@ function parseTransactionDetails(html) {
         // Extract the transaction details
         const details = $(element).find('td.details').text().trim();
 
-        // Extract the amount
-        const amount = $(element).find('td.amount').text().trim();
+        // Extract the amount and format it
+        let amount = $(element).find('td.amount').text().trim();
+
+        // Remove any parentheses and ensure it has two decimal places
+        amount = parseFloat(amount.replace(/[()$]/g, '')).toFixed(2);
 
         transactions.push({ date: formattedDate, details, amount });
     });
@@ -120,40 +170,37 @@ function parseTransactionDetails(html) {
     return transactions;
 }
 
-// Route to check emails and log transactions
-app.get('/check-emails', async (req, res) => {
-    try {
-        const transactions = await checkEmails();
-        if (transactions.length > 0) {
-            console.log('Transactions found:');
-            transactions.forEach(transaction => console.log(transaction));
-        } else {
-            console.log('No transactions found.');
-        }
-        res.json({ message: 'Email check completed.', transactions });
-    } catch (err) {
-        console.error('Error checking emails:', err);
-        res.status(500).json({ error: 'Failed to check emails' });
-    }
-});
-
-// Automatically check emails every 5 minutes
-setInterval(async () => {
+// Function to handle the email checking process
+async function processEmails() {
     try {
         console.log('Checking for new emails...');
         const transactions = await checkEmails();
-        if (transactions.length > 0) {
-            console.log('Transactions found:');
-            transactions.forEach(transaction => console.log(transaction));
-        } else {
-            console.log('No transactions found.');
-        }
-    } catch (err) {
-        console.error('Error checking emails:', err);
-    }
-}, 10 * 1000); // 10 seconds converted to ms
+        const keywords = await getKeywords();
 
-// Start the server
+        for (const transaction of transactions) {
+            let matched = false;
+            for (const [keyword, category] of keywords) {
+                if (transaction.details.includes(keyword)) {
+                    await addTransaction(transaction.date, transaction.details, transaction.amount, category); // Ensure this is awaited
+                    console.log(`Categorized transaction found and added: ${transaction.details}`);
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) {
+                await addUncategorizedTransaction(transaction.date, transaction.details, transaction.amount); // Ensure this is awaited
+                console.log(`Uncategorized transaction found and added: ${transaction.details}`);
+            }
+        }
+
+    } catch (err) {
+        console.error('Error during automatic email check:', err);
+    }
+}
+
+// Start the server and initiate email checking immediately
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
+    processEmails(); // Check emails immediately upon server start
+    setInterval(processEmails, 5 * 60 * 1000); // Check emails every 5 minutes
 });
