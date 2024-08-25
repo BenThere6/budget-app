@@ -11,5 +11,8 @@
     "nodemailer": "^6.9.14",
     "simple-oauth2": "^5.1.0",
     "xoauth2": "^1.2.0"
+  },
+  "scripts": {
+    "start": "node server.js"
   }
 }
