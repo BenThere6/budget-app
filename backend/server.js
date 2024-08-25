@@ -99,7 +99,7 @@ async function checkEmails() {
                     const transactions = [];
                     const parsePromises = [];
 
-                    const fetch = mail.fetch(results, { bodies: '' });
+                    const fetch = mail.fetch(results, { bodies: '', markSeen: true });
                     fetch.on('message', msg => {
                         parsePromises.push(
                             new Promise((resolve, reject) => {
@@ -119,10 +119,21 @@ async function checkEmails() {
                                 });
                             })
                         );
+
+                        // Mark message for deletion after processing
+                        msg.once('attributes', attrs => {
+                            const { uid } = attrs;
+                            mail.addFlags(uid, '\\Deleted', err => {
+                                if (err) {
+                                    console.error('Error marking email for deletion:', err);
+                                }
+                            });
+                        });
                     });
 
                     fetch.once('end', async () => {
                         await Promise.all(parsePromises); // Ensure all parsing is complete
+                        mail.expunge(); // Permanently remove the deleted messages
                         mail.end();
                         resolve(transactions);
                     });
@@ -139,7 +150,6 @@ async function checkEmails() {
     });
 }
 
-// Function to parse transaction details from the email HTML content
 // Function to parse transaction details from the email HTML content
 function parseTransactionDetails(html) {
     const $ = cheerio.load(html);
