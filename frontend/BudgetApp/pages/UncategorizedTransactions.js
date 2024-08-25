@@ -1,11 +1,26 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, Button } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TextInput, Picker, Button } from 'react-native';
 
 export default function UncategorizedTransactions() {
     const [keyword, setKeyword] = useState('');
     const [category, setCategory] = useState('');
+    const [categories, setCategories] = useState([]);
 
-    // This is where the handleSave function goes
+    useEffect(() => {
+        // Fetch categories from the backend
+        const fetchCategories = async () => {
+            try {
+                const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/categories');
+                const data = await response.json();
+                setCategories(data);
+            } catch (error) {
+                console.error('Error fetching categories:', error);
+            }
+        };
+
+        fetchCategories();
+    }, []);
+
     const handleSave = async () => {
         if (keyword && category) {
             try {
@@ -34,8 +49,6 @@ export default function UncategorizedTransactions() {
 
     return (
         <View style={styles.container}>
-            <Text>Uncategorized Transactions Page</Text>
-            {/* Placeholder for transaction list */}
             <FlatList
                 data={[]}
                 renderItem={({ item }) => (
@@ -52,12 +65,16 @@ export default function UncategorizedTransactions() {
                 value={keyword}
                 onChangeText={setKeyword}
             />
-            <TextInput
+            <Picker
+                selectedValue={category}
                 style={styles.input}
-                placeholder="Enter Category"
-                value={category}
-                onChangeText={setCategory}
-            />
+                onValueChange={(itemValue) => setCategory(itemValue)}
+            >
+                <Picker.Item label="Select a Category" value="" />
+                {categories.map((cat, index) => (
+                    <Picker.Item key={index} label={cat} value={cat} />
+                ))}
+            </Picker>
             <Button title="Save Keyword & Category" onPress={handleSave} />
         </View>
     );

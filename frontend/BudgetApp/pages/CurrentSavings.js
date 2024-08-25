@@ -6,7 +6,7 @@ export default function CurrentSavings() {
     emergency: '',
     general: '',
     future: '',
-    treatYourself: '',
+    treatYoSelf: '',
     vehicle: '',
     giftsDonations: '',
     travelVacation: ''
@@ -32,7 +32,7 @@ export default function CurrentSavings() {
       <Text style={styles.text}>Emergency: {savingsData.emergency}</Text>
       <Text style={styles.text}>General: {savingsData.general}</Text>
       <Text style={styles.text}>Future: {savingsData.future}</Text>
-      <Text style={styles.text}>Treat Yo' Self: {savingsData.treatYourself}</Text>
+      <Text style={styles.text}>Treat Yo' Self: {savingsData.treatYoSelf}</Text>
       <Text style={styles.text}>Vehicle: {savingsData.vehicle}</Text>
       <Text style={styles.text}>Gifts & Donations: {savingsData.giftsDonations}</Text>
       <Text style={styles.text}>Travel/Vacation: {savingsData.travelVacation}</Text>

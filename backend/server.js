@@ -305,6 +305,34 @@ app.post('/save-keyword', async (req, res) => {
     }
 });  
 
+// Function to get categories from the Google Sheets
+async function getCategories() {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+    try {
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            range: 'Calculations!B128:DS128', // Adjust the range if necessary
+        });
+
+        // Flatten the array and remove any empty values
+        const categories = response.data.values[0].filter(category => category.trim() !== '');
+        return categories;
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        return [];
+    }
+}
+
+// Endpoint to get categories
+app.get('/categories', async (req, res) => {
+    const categories = await getCategories();
+    if (categories.length > 0) {
+        res.json(categories);
+    } else {
+        res.status(500).json({ error: 'Failed to fetch categories' });
+    }
+});
+
 // Start the server and initiate email checking immediately
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
