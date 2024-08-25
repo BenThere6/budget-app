@@ -278,6 +278,31 @@ app.get('/savings', async (req, res) => {
     }
 });
 
+app.post('/save-keyword', async (req, res) => {
+    const { keyword, category } = req.body;
+  
+    if (!keyword || !category) {
+      return res.status(400).json({ error: 'Keyword and category are required.' });
+    }
+  
+    const sheets = google.sheets({ version: 'v4', auth: client });
+    
+    try {
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+        range: 'Keywords!A:B',
+        valueInputOption: 'RAW',
+        resource: {
+          values: [[keyword, category]],
+        },
+      });
+      res.status(200).json({ message: 'Keyword and category saved successfully.' });
+    } catch (error) {
+      console.error('Error saving keyword and category:', error);
+      res.status(500).json({ error: 'Failed to save keyword and category.' });
+    }
+  });  
+
 // Start the server and initiate email checking immediately
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
