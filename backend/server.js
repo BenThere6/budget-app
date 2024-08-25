@@ -132,14 +132,14 @@ async function checkEmails() {
                         );
 
                         // Mark message for deletion after processing
-                        msg.once('attributes', attrs => {
-                            const { uid } = attrs;
-                            mail.addFlags(uid, '\\Deleted', err => {
-                                if (err) {
-                                    console.error('Error marking email for deletion:', err);
-                                }
-                            });
-                        });
+                        // msg.once('attributes', attrs => {
+                        //     const { uid } = attrs;
+                        //     mail.addFlags(uid, '\\Deleted', err => {
+                        //         if (err) {
+                        //             console.error('Error marking email for deletion:', err);
+                        //         }
+                        //     });
+                        // });
                     });
 
                     fetch.once('end', async () => {
@@ -436,5 +436,5 @@ app.delete('/uncategorized-transactions/:rowIndex', async (req, res) => {
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
     processEmails(); // Check emails immediately upon server start
-    setInterval(processEmails, 5 * 60 * 1000); // Check emails every 5 minutes
+    setInterval(processEmails, 1 * 60 * 1000); // Check emails every 1 minutes
 });
