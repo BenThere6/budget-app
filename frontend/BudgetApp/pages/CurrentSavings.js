@@ -15,7 +15,7 @@ export default function CurrentSavings() {
   useEffect(() => {
     const fetchSavingsData = async () => {
       try {
-        const response = await fetch('http://localhost:3009/savings');
+        const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/savings');
         const data = await response.json();
         setSavingsData(data);
       } catch (error) {

@@ -12,7 +12,7 @@ export default function CurrentBudgets() {
   useEffect(() => {
     const fetchBudgetData = async () => {
       try {
-        const response = await fetch('http://localhost:3009/budget');
+        const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/budget/');
         const data = await response.json();
         setBudgetData(data);
       } catch (error) {
