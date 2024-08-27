@@ -503,8 +503,37 @@ app.delete('/uncategorized-transactions/:rowIndex', async (req, res) => {
     const { rowIndex } = req.params;
 
     try {
+        // Fetch the uncategorized transaction to be deleted
+        const transactions = await getUncategorizedTransactions();
+        const transactionToDelete = transactions.find(t => t.id === parseInt(rowIndex));
+
+        if (!transactionToDelete) {
+            return res.status(404).json({ error: 'Transaction not found.' });
+        }
+
+        // Get all keywords and their categories
+        const keywords = await getKeywords();
+
+        // Check if the transaction's details contain any of the saved keywords
+        let matchingKeyword = null;
+        for (const [keyword, category] of keywords) {
+            if (transactionToDelete.details.includes(keyword)) {
+                matchingKeyword = { keyword, category };
+                break;
+            }
+        }
+
+        if (!matchingKeyword) {
+            return res.status(403).json({ error: 'Cannot delete transaction. No matching keywords found.' });
+        }
+
+        // Add the transaction to the categorized tab
+        await addTransaction(transactionToDelete.date, transactionToDelete.details, transactionToDelete.amount, matchingKeyword.category);
+
+        // Delete the uncategorized transaction if the move was successful
         await deleteUncategorizedTransaction(parseInt(rowIndex));
-        res.status(200).json({ message: 'Transaction deleted successfully.' });
+
+        res.status(200).json({ message: 'Transaction moved to categorized and deleted from uncategorized.' });
     } catch (error) {
         console.error('Error deleting uncategorized transaction:', error);
         res.status(500).json({ error: 'Failed to delete transaction.' });
