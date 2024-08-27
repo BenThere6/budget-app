@@ -90,7 +90,7 @@ async function addUncategorizedTransaction(date, details, amount) {
         });
 
         // Send notification after adding the transaction
-        const token = 'Wy1guZIFJG4Zpe7r2Ekc8X'; // Retrieve the saved token from your database
+        const token = process.env.PUSH_TOKEN; // Retrieve the saved token from your database
         sendPushNotification(token, 'New Uncategorized Transaction Added');
         console.log('Uncategorized transaction added and notification sent.');
     } catch (error) {
