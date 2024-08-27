@@ -12,6 +12,8 @@ let expo = new Expo();
 const app = express();
 const port = process.env.PORT || 3009;
 
+console.log(process.env.PUSH_TOKEN)
+
 // Middleware to parse JSON bodies
 app.use(express.json());
 app.use(cors());
