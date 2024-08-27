@@ -511,7 +511,7 @@ app.delete('/uncategorized-transactions/:rowIndex', async (req, res) => {
             return res.status(404).json({ error: 'Transaction not found.' });
         }
 
-        // Get all keywords and their categories
+        // Re-fetch all keywords and their categories to ensure the list is up-to-date
         const keywords = await getKeywords();
 
         // Check if the transaction's details contain any of the saved keywords

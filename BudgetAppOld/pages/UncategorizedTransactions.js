@@ -96,7 +96,7 @@ export default function UncategorizedTransactions() {
                     setTransactions(transactions.filter(t => t.id !== transaction.id));
                     alert('Transaction moved to categorized and deleted from uncategorized.');
                 } else {
-                    alert('Failed to delete transaction from uncategorized. Try again.');
+                    alert(deleteResponse.message);
                 }
             } else {
                 alert('Failed to move transaction. Try again.');
