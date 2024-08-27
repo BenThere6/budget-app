@@ -62,24 +62,51 @@ export default function UncategorizedTransactions() {
         }
     };
 
-    const handleDelete = async (id) => {
+    const handleDelete = async (transaction) => {
         try {
-            const response = await fetch(`https://budgetapp-dc6bcd57eaee.herokuapp.com/uncategorized-transactions/${id}`, {
-                method: 'DELETE',
+            // Check if there's a matching keyword
+            const matchingKeyword = categories.find(cat => transaction.details.includes(cat));
+    
+            if (!matchingKeyword) {
+                alert('Cannot delete. No matching keywords found.');
+                return;
+            }
+    
+            // Add the transaction to the Categorized tab
+            const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/add-transaction', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    date: transaction.date,
+                    category: matchingKeyword,
+                    amount: transaction.amount,
+                    details: transaction.details,
+                }),
             });
-
+    
             if (response.ok) {
-                alert('Transaction deleted successfully!');
-                setTransactions(transactions.filter(transaction => transaction.id !== id));
+                // Delete the uncategorized transaction if the move was successful
+                const deleteResponse = await fetch(`https://budgetapp-dc6bcd57eaee.herokuapp.com/uncategorized-transactions/${transaction.id}`, {
+                    method: 'DELETE',
+                });
+    
+                if (deleteResponse.ok) {
+                    setTransactions(transactions.filter(t => t.id !== transaction.id));
+                    alert('Transaction moved to categorized and deleted from uncategorized.');
+                } else {
+                    alert('Failed to delete transaction from uncategorized. Try again.');
+                }
             } else {
-                alert('Failed to delete transaction. Try again.');
+                alert('Failed to move transaction. Try again.');
             }
         } catch (error) {
             alert('Error:', error.message);
         }
     };
 
-    const confirmDelete = (id) => {
+    const confirmDelete = (transaction) => {
         Alert.alert(
             "Delete Transaction",
             "Are you sure you want to delete this transaction?",
@@ -91,7 +118,7 @@ export default function UncategorizedTransactions() {
                 {
                     text: "Delete",
                     style: "destructive",
-                    onPress: () => handleDelete(id)
+                    onPress: () => handleDelete(transaction)
                 }
             ]
         );
@@ -103,7 +130,7 @@ export default function UncategorizedTransactions() {
                 {item.details.length > 50 ? `${item.details.substring(0, 50)}...` : item.details}
             </Text>
             <Text style={styles.transactionAmount}>{`$${item.amount}`}</Text>
-            <Button title="Delete" color="red" onPress={() => confirmDelete(item.id)} />
+            <Button title="Delete" color="red" onPress={() => confirmDelete(item)} />
         </View>
     );
 

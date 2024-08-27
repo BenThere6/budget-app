@@ -199,6 +199,23 @@ function parseTransactionDetails(html) {
     return transactions;
 }
 
+// Endpoint to add a transaction
+app.post('/add-transaction', async (req, res) => {
+    const { date, category, amount, details } = req.body;
+
+    if (!date || !category || !amount || !details) {
+        return res.status(400).json({ error: 'Date, category, amount, and details are required.' });
+    }
+
+    try {
+        await addTransaction(date, details, amount, category);
+        res.status(200).json({ message: 'Transaction added successfully.' });
+    } catch (error) {
+        console.error('Error adding transaction:', error);
+        res.status(500).json({ error: 'Failed to add transaction.' });
+    }
+});
+
 // Function to handle the email checking process
 async function processEmails() {
     try {
