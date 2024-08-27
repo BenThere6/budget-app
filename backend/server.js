@@ -81,7 +81,7 @@ async function addUncategorizedTransaction(date, details, amount) {
     const sheets = google.sheets({ version: 'v4', auth: client });
     try {
         await sheets.spreadsheets.values.append({
-            spreadsheetId: 'your-spreadsheet-id',
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
             range: 'Uncategorized!A:D',
             valueInputOption: 'RAW',
             resource: {
