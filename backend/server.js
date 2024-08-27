@@ -100,8 +100,8 @@ async function addUncategorizedTransaction(date, details, amount) {
     }
 }
 
-// Function to check emails
-async function checkEmails() {
+// Function to check emails with retry logic
+async function checkEmails(retries = 3) {
     return new Promise((resolve, reject) => {
         const mail = new imap(imapConfig);
 
@@ -161,9 +161,15 @@ async function checkEmails() {
             });
         });
 
-        mail.once('error', err => {
+        mail.once('error', async err => {
             console.error('Error with IMAP connection:', err);
-            reject(err);
+            if (retries > 0) {
+                console.log(`Retrying IMAP connection... (${retries} retries left)`);
+                await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds before retrying
+                resolve(await checkEmails(retries - 1)); // Retry the connection
+            } else {
+                reject(err); // If all retries fail, reject the promise
+            }
         });
 
         mail.connect();
@@ -401,9 +407,9 @@ async function getUncategorizedTransactions() {
         // Map the data to an array of objects
         const transactions = rows.map((row, index) => ({
             id: index + 1,
-            date: row[0],
-            details: row[1],
-            amount: row[2],
+            date: row[0] || '',
+            details: row[1] || '',
+            amount: row[2] || '',
             categorized: row[3] === 'true',
         }));
 
