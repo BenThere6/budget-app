@@ -242,6 +242,24 @@ app.get('/budget', async (req, res) => {
     }
 });
 
+// Endpoint to save Expo push token
+app.post('/api/token', async (req, res) => {
+    const { token } = req.body;
+
+    if (!token) {
+        return res.status(400).json({ error: 'Token is required.' });
+    }
+
+    // Here you would typically save the token to a database
+    // Since it's a practice app, we will just log it
+    console.log('Received Expo push token:', token);
+
+    // In a real application, you might also associate the token with a user ID
+    // For example, you could store it in a MongoDB collection or similar
+
+    res.status(200).json({ message: 'Token saved successfully.' });
+});
+
 // Function to get savings data
 async function getSavingsData() {
     const sheets = google.sheets({ version: 'v4', auth: client });
