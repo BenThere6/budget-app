@@ -5,6 +5,8 @@ const cheerio = require('cheerio');
 const { simpleParser } = require('mailparser');
 require('dotenv').config();
 const cors = require('cors');
+const { Expo } = require('expo-server-sdk');
+let expo = new Expo();
 
 // Initialize Express app
 const app = express();
@@ -79,13 +81,18 @@ async function addUncategorizedTransaction(date, details, amount) {
     const sheets = google.sheets({ version: 'v4', auth: client });
     try {
         await sheets.spreadsheets.values.append({
-            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            spreadsheetId: 'your-spreadsheet-id',
             range: 'Uncategorized!A:D',
             valueInputOption: 'RAW',
             resource: {
                 values: [[date, details, amount, 'false']],
             },
         });
+
+        // Send notification after adding the transaction
+        const token = 'your-saved-token'; // Retrieve the saved token from your database
+        sendPushNotification(token, 'New Uncategorized Transaction Added');
+        console.log('Uncategorized transaction added and notification sent.');
     } catch (error) {
         console.error('Error adding uncategorized transaction:', error);
     }
@@ -322,6 +329,28 @@ app.post('/save-keyword', async (req, res) => {
         res.status(500).json({ error: 'Failed to save keyword and category.' });
     }
 });
+
+// Function to send a push notification
+async function sendPushNotification(token, message) {
+    if (!Expo.isExpoPushToken(token)) {
+        console.error(`Push token ${token} is not a valid Expo push token`);
+        return;
+    }
+
+    const messages = [{
+        to: token,
+        sound: 'default',
+        body: message,
+        data: { withSome: 'data' },
+    }];
+
+    try {
+        const ticketChunk = await expo.sendPushNotificationsAsync(messages);
+        console.log(ticketChunk);
+    } catch (error) {
+        console.error(error);
+    }
+}
 
 // Function to get categories from the Google Sheets
 async function getCategories() {
