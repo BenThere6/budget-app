@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Text, View, Button, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { NavigationContainer } from '@react-navigation/native';
@@ -20,7 +20,6 @@ const Tab = createBottomTabNavigator();
 
 export default function App() {
   const [expoPushToken, setExpoPushToken] = useState('');
-  const [notification, setNotification] = useState(false);
   const notificationListener = useRef();
   const responseListener = useRef();
 
@@ -33,11 +32,11 @@ export default function App() {
     });
 
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      setNotification(notification);
+      console.log('Notification received:', notification);
     });
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log(response);
+      console.log('Notification response received:', response);
     });
 
     return () => {
@@ -67,32 +66,6 @@ export default function App() {
         <Tab.Screen name="Savings" component={CurrentSavings} />
         <Tab.Screen name="Uncategorized" component={UncategorizedTransactions} />
       </Tab.Navigator>
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'space-around',
-        }}>
-        <Text>Your expo push token: {expoPushToken}</Text>
-        <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-          <Text>Title: {notification && notification.request.content.title} </Text>
-          <Text>Body: {notification && notification.request.content.body}</Text>
-          <Text>Data: {notification && JSON.stringify(notification.request.content.data)}</Text>
-        </View>
-        <Button
-          title="Press to schedule a notification"
-          onPress={async () => {
-            await Notifications.scheduleNotificationAsync({
-              content: {
-                title: "You've got mail! 📬",
-                body: 'Here is the notification body',
-                data: { data: 'goes here' },
-              },
-              trigger: { seconds: 2 },
-            });
-          }}
-        />
-      </View>
     </NavigationContainer>
   );
 }

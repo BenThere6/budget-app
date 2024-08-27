@@ -9,6 +9,9 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@react-native-picker/picker": "^2.7.7",
+    "@react-navigation/bottom-tabs": "^6.6.1",
+    "@react-navigation/native": "^6.1.18",
     "expo": "~51.0.28",
     "expo-device": "~6.0.2",
     "expo-notifications": "~0.28.16",
