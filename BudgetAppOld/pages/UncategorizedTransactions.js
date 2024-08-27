@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, Button, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, Button, Alert, Modal, TouchableOpacity } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 
 export default function UncategorizedTransactions() {
@@ -7,6 +7,8 @@ export default function UncategorizedTransactions() {
     const [category, setCategory] = useState('');
     const [categories, setCategories] = useState([]);
     const [transactions, setTransactions] = useState([]);
+    const [selectedTransaction, setSelectedTransaction] = useState(null);
+    const [modalVisible, setModalVisible] = useState(false);
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -125,14 +127,26 @@ export default function UncategorizedTransactions() {
     };
 
     const renderTransaction = ({ item }) => (
-        <View style={styles.transactionItem}>
-            <Text style={styles.transactionDetails}>
-                {item.details.length > 50 ? `${item.details.substring(0, 50)}...` : item.details}
-            </Text>
-            <Text style={styles.transactionAmount}>{`$${item.amount}`}</Text>
-            <Button title="Delete" color="red" onPress={() => confirmDelete(item)} />
-        </View>
+        <TouchableOpacity onPress={() => handleSelectTransaction(item)}>
+            <View style={styles.transactionItem}>
+                <Text style={styles.transactionDetails}>
+                    {item.details.length > 50 ? `${item.details.substring(0, 50)}...` : item.details}
+                </Text>
+                <Text style={styles.transactionAmount}>{`$${item.amount}`}</Text>
+                <Button title="Delete" color="red" onPress={() => confirmDelete(item)} />
+            </View>
+        </TouchableOpacity>
     );
+
+    const handleSelectTransaction = (transaction) => {
+        setSelectedTransaction(transaction);
+        setModalVisible(true);
+    };
+
+    const closeModal = () => {
+        setModalVisible(false);
+        setSelectedTransaction(null);
+    };
 
     return (
         <View style={styles.container}>
@@ -163,6 +177,26 @@ export default function UncategorizedTransactions() {
                 keyExtractor={item => item.id.toString()}
                 contentContainerStyle={styles.transactionList}
             />
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={closeModal}
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalView}>
+                        <Text style={styles.modalTitle}>Transaction Details</Text>
+                        {selectedTransaction && (
+                            <>
+                                <Text style={styles.modalText}>{selectedTransaction.details}</Text>
+                                <Text style={styles.modalText}>Amount: ${selectedTransaction.amount}</Text>
+                                <Text style={styles.modalText}>Date: {selectedTransaction.date}</Text>
+                            </>
+                        )}
+                        <Button title="Close" onPress={closeModal} />
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -209,5 +243,35 @@ const styles = StyleSheet.create({
     transactionAmount: {
         width: 70, // Set a fixed width to ensure alignment
         textAlign: 'left', // Align the text to the right within its box
+    },
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalView: {
+        margin: 20,
+        backgroundColor: 'white',
+        borderRadius: 10,
+        padding: 35,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 15,
+    },
+    modalText: {
+        marginBottom: 10,
+        fontSize: 16,
     },
 });
