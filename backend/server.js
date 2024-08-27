@@ -391,8 +391,15 @@ async function getUncategorizedTransactions() {
             range: 'Uncategorized!A:D', // Adjust the range if necessary
         });
 
+        // Check if the response contains any values
+        const rows = response.data.values;
+        if (!rows || rows.length === 0) {
+            console.log('No uncategorized transactions found.');
+            return []; // Return an empty array if there are no uncategorized transactions
+        }
+
         // Map the data to an array of objects
-        const transactions = response.data.values.map((row, index) => ({
+        const transactions = rows.map((row, index) => ({
             id: index + 1,
             date: row[0],
             details: row[1],
