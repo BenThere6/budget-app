@@ -243,6 +243,8 @@ async function processEmails() {
         const transactions = await checkEmails();
         const keywords = await getKeywords();
 
+        let newUncategorizedCount = 0;
+
         for (const transaction of transactions) {
             let matched = false;
             for (const [keyword, category] of keywords) {
@@ -256,7 +258,14 @@ async function processEmails() {
             if (!matched) {
                 await addUncategorizedTransaction(transaction.date, transaction.details, transaction.amount);
                 console.log(`Uncategorized transaction found and added: ${transaction.details}`);
+                newUncategorizedCount++; // Increase the count for each new uncategorized transaction
             }
+        }
+
+        if (newUncategorizedCount > 0) {
+            const token = process.env.PUSH_TOKEN; // Retrieve the saved token from your database
+            sendPushNotification(token, `${newUncategorizedCount} new uncategorized transaction(s) added.`);
+            console.log('Notification sent for new uncategorized transactions.');
         }
 
     } catch (err) {
