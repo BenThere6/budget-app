@@ -66,7 +66,7 @@ async function addTransaction(date, details, amount, category) {
     const sheets = google.sheets({ version: 'v4', auth: client });
 
     // Format the date as MM-DD-YYYY
-    const formattedDate = new Date(date).toLocaleDateString('en-US');
+    const formattedDate = new Date(date).toISOString().split('T')[0].split('-').reverse().join('-');
 
     const numericAmount = parseFloat(amount); // Convert amount to a number
 
@@ -74,7 +74,7 @@ async function addTransaction(date, details, amount, category) {
         await sheets.spreadsheets.values.append({
             spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
             range: 'Transactions!A:D',
-            valueInputOption: 'RAW', // Use RAW to ensure no extra formatting is added
+            valueInputOption: 'USER_ENTERED', // Use USER_ENTERED to prevent the tick mark
             resource: {
                 values: [[formattedDate, category, numericAmount, details]],
             },
@@ -89,7 +89,7 @@ async function addUncategorizedTransaction(date, details, amount) {
     const sheets = google.sheets({ version: 'v4', auth: client });
 
     // Format the date as MM-DD-YYYY
-    const formattedDate = new Date(date).toLocaleDateString('en-US');
+    const formattedDate = new Date(date).toISOString().split('T')[0].split('-').reverse().join('-');
 
     const numericAmount = parseFloat(amount); // Convert amount to a number
 
@@ -97,7 +97,7 @@ async function addUncategorizedTransaction(date, details, amount) {
         await sheets.spreadsheets.values.append({
             spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
             range: 'Uncategorized!A:D',
-            valueInputOption: 'RAW', // Use RAW to ensure no extra formatting is added
+            valueInputOption: 'USER_ENTERED', // Use USER_ENTERED to prevent the tick mark
             resource: {
                 values: [[formattedDate, details, numericAmount, 'false']],
             },
