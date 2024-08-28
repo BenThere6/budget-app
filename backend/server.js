@@ -65,8 +65,9 @@ async function getKeywords() {
 async function addTransaction(date, details, amount, category) {
     const sheets = google.sheets({ version: 'v4', auth: client });
 
-    // Parse date if necessary and convert amount to a number
-    const parsedDate = new Date(date); // Ensure this is a Date object
+    // Format the date as MM-DD-YYYY
+    const formattedDate = new Date(date).toLocaleDateString('en-US');
+
     const numericAmount = parseFloat(amount); // Convert amount to a number
 
     try {
@@ -75,7 +76,7 @@ async function addTransaction(date, details, amount, category) {
             range: 'Transactions!A:D',
             valueInputOption: 'RAW', // Use RAW to ensure no extra formatting is added
             resource: {
-                values: [[parsedDate, category, numericAmount, details]],
+                values: [[formattedDate, category, numericAmount, details]],
             },
         });
     } catch (error) {
@@ -87,8 +88,9 @@ async function addTransaction(date, details, amount, category) {
 async function addUncategorizedTransaction(date, details, amount) {
     const sheets = google.sheets({ version: 'v4', auth: client });
 
-    // Parse date if necessary and convert amount to a number
-    const parsedDate = new Date(date); // Ensure this is a Date object
+    // Format the date as MM-DD-YYYY
+    const formattedDate = new Date(date).toLocaleDateString('en-US');
+
     const numericAmount = parseFloat(amount); // Convert amount to a number
 
     try {
@@ -97,7 +99,7 @@ async function addUncategorizedTransaction(date, details, amount) {
             range: 'Uncategorized!A:D',
             valueInputOption: 'RAW', // Use RAW to ensure no extra formatting is added
             resource: {
-                values: [[parsedDate, details, numericAmount, 'false']],
+                values: [[formattedDate, details, numericAmount, 'false']],
             },
         });
 
