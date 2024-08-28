@@ -111,10 +111,7 @@ async function addUncategorizedTransaction(date, details, amount) {
             },
         });
 
-        // Send notification after adding the transaction
-        const token = process.env.PUSH_TOKEN; // Retrieve the saved token from your database
-        sendPushNotification(token, 'New Uncategorized Transaction Added');
-        console.log('Uncategorized transaction added and notification sent.');
+        console.log('Uncategorized transaction added.');
     } catch (error) {
         console.error('Error adding uncategorized transaction:', error);
     }
@@ -265,7 +262,7 @@ async function processEmails() {
         if (newUncategorizedCount > 0) {
             const token = process.env.PUSH_TOKEN; // Retrieve the saved token from your database
             sendPushNotification(token, `${newUncategorizedCount} new uncategorized transaction(s) added.`);
-            console.log('Notification sent for new uncategorized transactions.');
+            console.log('Summary notification sent for new uncategorized transactions.');
         }
 
     } catch (err) {
