@@ -66,7 +66,11 @@ async function addTransaction(date, details, amount, category) {
     const sheets = google.sheets({ version: 'v4', auth: client });
 
     // Format the date as MM-DD-YYYY
-    const formattedDate = new Date(date).toISOString().split('T')[0].split('-').reverse().join('-');
+    const formattedDate = new Date(date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
 
     const numericAmount = parseFloat(amount); // Convert amount to a number
 
@@ -89,7 +93,11 @@ async function addUncategorizedTransaction(date, details, amount) {
     const sheets = google.sheets({ version: 'v4', auth: client });
 
     // Format the date as MM-DD-YYYY
-    const formattedDate = new Date(date).toISOString().split('T')[0].split('-').reverse().join('-');
+    const formattedDate = new Date(date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
 
     const numericAmount = parseFloat(amount); // Convert amount to a number
 
