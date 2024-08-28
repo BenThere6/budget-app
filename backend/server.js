@@ -64,13 +64,18 @@ async function getKeywords() {
 // Function to add a categorized transaction
 async function addTransaction(date, details, amount, category) {
     const sheets = google.sheets({ version: 'v4', auth: client });
+
+    // Parse date if necessary and convert amount to a number
+    const parsedDate = new Date(date); // Ensure this is a Date object
+    const numericAmount = parseFloat(amount); // Convert amount to a number
+
     try {
         await sheets.spreadsheets.values.append({
             spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
             range: 'Transactions!A:D',
-            valueInputOption: 'RAW',
+            valueInputOption: 'RAW', // Use RAW to ensure no extra formatting is added
             resource: {
-                values: [[date, category, amount, details]],
+                values: [[parsedDate, category, numericAmount, details]],
             },
         });
     } catch (error) {
@@ -81,13 +86,18 @@ async function addTransaction(date, details, amount, category) {
 // Function to add an uncategorized transaction
 async function addUncategorizedTransaction(date, details, amount) {
     const sheets = google.sheets({ version: 'v4', auth: client });
+
+    // Parse date if necessary and convert amount to a number
+    const parsedDate = new Date(date); // Ensure this is a Date object
+    const numericAmount = parseFloat(amount); // Convert amount to a number
+
     try {
         await sheets.spreadsheets.values.append({
             spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
             range: 'Uncategorized!A:D',
-            valueInputOption: 'RAW',
+            valueInputOption: 'RAW', // Use RAW to ensure no extra formatting is added
             resource: {
-                values: [[date, details, amount, 'false']],
+                values: [[parsedDate, details, numericAmount, 'false']],
             },
         });
 
