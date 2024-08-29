@@ -11,9 +11,7 @@
       "distribution": "internal"
     },
     "production": {
-      "ios": {
-        "buildType": "app-store"
-      }
+      "distribution": "store"
     }
   },
   "submit": {
