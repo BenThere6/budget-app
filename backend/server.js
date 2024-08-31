@@ -8,6 +8,8 @@ const cors = require('cors');
 const { Expo } = require('expo-server-sdk');
 let expo = new Expo();
 
+const shouldCheckEmails = false;
+
 // Initialize Express app
 const app = express();
 const port = process.env.PORT || 3009;
@@ -569,6 +571,8 @@ app.delete('/uncategorized-transactions/:rowIndex', async (req, res) => {
 // Start the server and initiate email checking immediately
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
-    processEmails(); // Check emails immediately upon server start
-    setInterval(processEmails, 1 * 60 * 1000); // Check emails every 1 minutes
+    if (shouldCheckEmails) {
+        processEmails(); // Check emails immediately upon server start
+        setInterval(processEmails, 1 * 60 * 1000); // Check emails every 1 minutes
+    }
 });
