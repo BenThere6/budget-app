@@ -8,7 +8,7 @@ const cors = require('cors');
 const { Expo } = require('expo-server-sdk');
 let expo = new Expo();
 
-const shouldCheckEmails = false;
+const shouldCheckEmails = true;
 
 // Initialize Express app
 const app = express();
