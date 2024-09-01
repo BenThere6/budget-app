@@ -85,7 +85,7 @@ async function registerForPushNotificationsAsync() {
     }
 
     token = (await Notifications.getExpoPushTokenAsync({
-      projectId: 'your-project-id-here', // Replace with your actual project ID
+      projectId: 'd00c5c45-b878-4373-b1cd-0b6a67e1e3e7', // Replace with your actual project ID
     })).data;
 
     console.log(token);
