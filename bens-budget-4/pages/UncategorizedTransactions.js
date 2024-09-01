@@ -46,11 +46,16 @@ export default function UncategorizedTransactions() {
                     },
                     body: JSON.stringify({ keyword, category }),
                 });
-
+    
                 if (response.ok) {
                     alert('Keyword and Category saved successfully!');
                     setKeyword('');
                     setCategory('');
+                    
+                    // Fetch the updated keywords list
+                    const keywordsResponse = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/keywords');
+                    const updatedKeywords = await keywordsResponse.json();
+                    setCategories(updatedKeywords); // Update the categories in state
                 } else {
                     alert('Failed to save. Try again.');
                 }
@@ -60,7 +65,7 @@ export default function UncategorizedTransactions() {
         } else {
             alert('Please enter both a keyword and a category.');
         }
-    };
+    };    
 
     const handleDelete = async (id) => {
         try {
@@ -79,7 +84,13 @@ export default function UncategorizedTransactions() {
         }
     };
 
-    const confirmDelete = (id) => {
+    const confirmDelete = async (id) => {
+        // Fetch the updated keywords list
+        const keywordsResponse = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/keywords');
+        const updatedKeywords = await keywordsResponse.json();
+        setCategories(updatedKeywords); // Update the categories in state
+    
+        // Now, check if the transaction can be deleted
         Alert.alert(
             "Delete Transaction",
             "Are you sure you want to delete this transaction?",
@@ -95,7 +106,7 @@ export default function UncategorizedTransactions() {
                 }
             ]
         );
-    };
+    };    
 
     const renderTransaction = ({ item }) => (
         <View style={styles.transactionItem}>

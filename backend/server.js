@@ -218,6 +218,17 @@ function parseTransactionDetails(html) {
     return transactions;
 }
 
+// Endpoint to get current keywords
+app.get('/keywords', async (req, res) => {
+    try {
+        const keywords = await getKeywords(); // Use the existing getKeywords function
+        res.status(200).json(keywords);
+    } catch (error) {
+        console.error('Error fetching keywords:', error);
+        res.status(500).json({ error: 'Failed to fetch keywords.' });
+    }
+});
+
 // Endpoint to add a transaction
 app.post('/add-transaction', async (req, res) => {
     const { date, category, amount, details } = req.body;
