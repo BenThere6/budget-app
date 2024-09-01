@@ -2,6 +2,7 @@
   "expo": {
     "name": "bens-budget",
     "slug": "bens-budget",
+    "runtimeVersion": "1.0.0",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -19,7 +20,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.benthere7.bensbudget"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -28,9 +30,6 @@
       "eas": {
         "projectId": "a467af10-b618-4139-abb5-102a944d9299"
       }
-    },
-    "runtimeVersion": {
-      "policy": "appVersion"
     },
     "updates": {
       "url": "https://u.expo.dev/a467af10-b618-4139-abb5-102a944d9299"
