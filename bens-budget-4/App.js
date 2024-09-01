@@ -47,7 +47,7 @@ export default function App() {
 
   const sendTokenToServer = async (token) => {
     try {
-      await fetch('https://your-backend-server.com/api/token', {
+      await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/api/token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -85,7 +85,7 @@ async function registerForPushNotificationsAsync() {
     }
 
     token = (await Notifications.getExpoPushTokenAsync({
-      projectId: 'd00c5c45-b878-4373-b1cd-0b6a67e1e3e7', // Replace with your actual project ID
+      projectId: 'd00c5c45-b878-4373-b1cd-0b6a67e1e3e7',
     })).data;
 
     console.log(token);
