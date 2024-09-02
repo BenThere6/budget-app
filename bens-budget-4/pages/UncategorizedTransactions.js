@@ -83,11 +83,15 @@ export default function UncategorizedTransactions() {
     };
 
     const deleteMatchingTransactions = async (newKeyword) => {
-        const matchingTransactions = transactions.filter(transaction => 
-            transaction.details.includes(newKeyword)
-        );
+        // Get transactions that match the keyword
+        const matchingTransactions = transactions
+            .map((transaction, index) => ({ ...transaction, originalIndex: index }))
+            .filter(transaction => transaction.details.includes(newKeyword));
     
-        // Loop over all matching transactions and delete them
+        // Sort transactions by original index in descending order (from bottom to top)
+        matchingTransactions.sort((a, b) => b.originalIndex - a.originalIndex);
+    
+        // Loop over all matching transactions and delete them from bottom to top
         for (let i = 0; i < matchingTransactions.length; i++) {
             const transaction = matchingTransactions[i];
             
@@ -108,7 +112,7 @@ export default function UncategorizedTransactions() {
                 console.error(`Error deleting transaction with ID ${transaction.id}:`, error.message);
             }
         }
-    };    
+    };
     
     const renderTransaction = ({ item }) => (
         <View style={styles.transactionItem}>
