@@ -100,15 +100,22 @@ export default function UncategorizedTransactions({ navigation }) {
             }
         }
     };
-    
-    const renderTransaction = ({ item }) => (
-        <View style={styles.transactionItem}>
-            <Text style={styles.transactionDetails}>
-                {item.details}
-            </Text>
-            <Text style={styles.transactionAmount}>{`$${item.amount}`}</Text>
-        </View>
-    );    
+
+    // Render each transaction item
+    const renderTransaction = ({ item, index }) => {
+        const isHeader = index === 0;
+
+        return (
+            <View style={styles.transactionItem}>
+                <Text style={styles.transactionDetails}>
+                    {item.details}
+                </Text>
+                <Text style={styles.transactionAmount}>
+                    {isHeader ? item.amount : `$${item.amount}`}
+                </Text>
+            </View>
+        );
+    };
 
     return (
         <KeyboardAvoidingView 

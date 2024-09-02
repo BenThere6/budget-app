@@ -40,7 +40,7 @@ function BudgetsStack() {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="Budgets"
+        name="BudgetsScreen"
         component={CurrentBudgets}
         options={({ navigation }) => CustomHeader({ title: 'Budgets', onRefresh: () => navigation.setParams({ refresh: true }) })}
       />
@@ -52,7 +52,7 @@ function SavingsStack() {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="Savings"
+        name="SavingsScreen"
         component={CurrentSavings}
         options={({ navigation }) => CustomHeader({ title: 'Savings', onRefresh: () => navigation.setParams({ refresh: true }) })}
       />
@@ -64,7 +64,7 @@ function UncategorizedStack() {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="Uncategorized"
+        name="UncategorizedScreen"
         component={UncategorizedTransactions}
         options={({ navigation }) => CustomHeader({ title: 'Uncategorized', onRefresh: () => navigation.setParams({ refresh: true }) })}
       />
@@ -135,11 +135,9 @@ export default function App() {
 
             return <MaterialIcons name={iconName} size={size} color={color} />;
           },
+          tabBarActiveTintColor: 'tomato',
+          tabBarInactiveTintColor: 'gray',
         })}
-        tabBarOptions={{
-          activeTintColor: 'tomato',
-          inactiveTintColor: 'gray',
-        }}
       >
         <Tab.Screen name="Budgets" component={BudgetsStack} />
         <Tab.Screen name="Savings" component={SavingsStack} />

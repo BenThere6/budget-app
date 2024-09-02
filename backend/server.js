@@ -460,8 +460,15 @@ async function getUncategorizedTransactions() {
             return []; // Return an empty array if there are no uncategorized transactions
         }
 
+        // Check if the first row looks like headers
+        const headers = rows[0];
+        const isHeader = headers[0]?.toLowerCase() === "date" && headers[1]?.toLowerCase() === "details";
+
+        // Skip the first row if it's a header
+        const dataRows = isHeader ? rows.slice(1) : rows;
+
         // Map the data to an array of objects
-        const transactions = rows.map((row, index) => ({
+        const transactions = dataRows.map((row, index) => ({
             id: index + 1,
             date: row[0] || '',
             details: row[1] || '',
