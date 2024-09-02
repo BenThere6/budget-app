@@ -61,15 +61,20 @@ export default function UncategorizedTransactions({ navigation }) {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ keyword, category, amount: amount || null }), // Include amount if provided
+                    body: JSON.stringify({ 
+                        keyword, 
+                        category, 
+                        amount: amount || null // Include amount if provided 
+                    }),
                 });
-
+    
                 if (response.ok) {
                     alert('Keyword, Category, and Amount saved successfully!');
                     setKeyword('');
                     setCategory('');
                     setAmount(''); // Clear the amount input
-
+    
+                    setKeywords(prevKeywords => [...prevKeywords, { keyword, category, amount }]);
                     deleteMatchingTransactions(keyword);
                 } else {
                     alert('Failed to save. Try again.');
@@ -81,7 +86,7 @@ export default function UncategorizedTransactions({ navigation }) {
             alert('Please enter both a keyword and a category.');
         }
     };
-
+    
     const deleteMatchingTransactions = async (newKeyword) => {
         const matchingTransactions = transactions
             .map((transaction, index) => ({ ...transaction, originalIndex: index }))

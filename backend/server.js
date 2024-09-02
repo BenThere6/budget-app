@@ -375,7 +375,7 @@ app.get('/savings', async (req, res) => {
 
 // Endpoint to save a keyword and category
 app.post('/save-keyword', async (req, res) => {
-    const { keyword, category } = req.body;
+    const { keyword, category, amount } = req.body;
 
     if (!keyword || !category) {
         return res.status(400).json({ error: 'Keyword and category are required.' });
@@ -386,16 +386,16 @@ app.post('/save-keyword', async (req, res) => {
     try {
         await sheets.spreadsheets.values.append({
             spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
-            range: 'Keywords!A:B',
+            range: 'Keywords!A:C', // Adjusted range to include amount
             valueInputOption: 'RAW',
             resource: {
-                values: [[keyword, category]],
+                values: [[keyword, category, amount || '']], // Save amount if provided
             },
         });
-        res.status(200).json({ message: 'Keyword and category saved successfully.' });
+        res.status(200).json({ message: 'Keyword, category, and amount saved successfully.' });
     } catch (error) {
-        console.error('Error saving keyword and category:', error);
-        res.status(500).json({ error: 'Failed to save keyword and category.' });
+        console.error('Error saving keyword, category, and amount:', error);
+        res.status(500).json({ error: 'Failed to save keyword, category, and amount.' });
     }
 });
 
