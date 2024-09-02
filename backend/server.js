@@ -568,9 +568,9 @@ app.delete('/uncategorized-transactions/:rowIndex', async (req, res) => {
 
         // Check if the transaction's details contain any of the saved keywords
         let matchingKeyword = null;
-        for (const [keyword, category] of keywords) {
+        for (const { keyword, category, amount } of keywords) {
             if (transactionToDelete.details.includes(keyword)) {
-                matchingKeyword = { keyword, category };
+                matchingKeyword = { keyword, category, amount };
                 break;
             }
         }

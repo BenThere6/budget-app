@@ -10,10 +10,10 @@ export default function UncategorizedTransactions({ navigation }) {
     const [amount, setAmount] = useState(''); // New state for amount input
     const [categories, setCategories] = useState([]);
     const [transactions, setTransactions] = useState([]);
-    const [keywords, setKeywords] = useState([]);  // Local keyword list
     const [isPickerVisible, setPickerVisible] = useState(false);  // State to control Picker visibility
     const [isLoading, setIsLoading] = useState(true);  // State for loading indicator
 
+    // Fetch uncategorized transactions
     const fetchUncategorizedTransactions = async () => {
         setIsLoading(true);  // Start loading indicator
         try {
@@ -24,6 +24,17 @@ export default function UncategorizedTransactions({ navigation }) {
             console.error('Error fetching uncategorized transactions:', error);
         } finally {
             setIsLoading(false);  // Stop loading indicator
+        }
+    };
+
+    // Fetch categories from the server
+    const fetchCategories = async () => {
+        try {
+            const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/categories');
+            const data = await response.json();
+            setCategories(data);
+        } catch (error) {
+            console.error('Error fetching categories:', error);
         }
     };
 
@@ -39,6 +50,7 @@ export default function UncategorizedTransactions({ navigation }) {
 
     useEffect(() => {
         fetchUncategorizedTransactions();
+        fetchCategories();  // Fetch categories when the component loads
     }, []);
 
     const handleSave = async () => {
@@ -58,7 +70,6 @@ export default function UncategorizedTransactions({ navigation }) {
                     setCategory('');
                     setAmount(''); // Clear the amount input
 
-                    setKeywords(prevKeywords => [...prevKeywords, { keyword, category, amount }]);
                     deleteMatchingTransactions(keyword);
                 } else {
                     alert('Failed to save. Try again.');
@@ -75,15 +86,9 @@ export default function UncategorizedTransactions({ navigation }) {
         const matchingTransactions = transactions
             .map((transaction, index) => ({ ...transaction, originalIndex: index }))
             .filter(transaction => transaction.details.includes(newKeyword));
-    
-    
-        // Sort transactions by original index in descending order (from bottom to top)
 
         // Sort transactions by original index in descending order (from bottom to top)
         matchingTransactions.sort((a, b) => b.originalIndex - a.originalIndex);
-    
-    
-        // Loop over all matching transactions and delete them from bottom to top
 
         // Loop over all matching transactions and delete them from bottom to top
         for (let i = 0; i < matchingTransactions.length; i++) {
