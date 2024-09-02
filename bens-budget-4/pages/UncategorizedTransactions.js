@@ -112,11 +112,11 @@ export default function UncategorizedTransactions() {
     const renderTransaction = ({ item }) => (
         <View style={styles.transactionItem}>
             <Text style={styles.transactionDetails}>
-                {item.details.length > 50 ? `${item.details.substring(0, 50)}...` : item.details}
+                {item.details}
             </Text>
             <Text style={styles.transactionAmount}>{`$${item.amount}`}</Text>
         </View>
-    );
+    );    
 
     return (
         <KeyboardAvoidingView 
@@ -197,6 +197,7 @@ const styles = StyleSheet.create({
     transactionDetails: {
         flex: 1,
         marginRight: 10,
+        flexWrap: 'wrap', // Allow the text to wrap if it's too long
     },
     transactionAmount: {
         width: 70,
