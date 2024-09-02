@@ -81,7 +81,7 @@ async function addTransaction(date, details, amount, category) {
     const numericAmount = parseFloat(amount); // Convert amount to a number
 
     try {
-        await sheets.spreadsheets.values.append({
+        const response = await sheets.spreadsheets.values.append({
             spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
             range: 'Transactions!A:D',
             valueInputOption: 'USER_ENTERED', // Use USER_ENTERED to prevent the tick mark
@@ -89,6 +89,12 @@ async function addTransaction(date, details, amount, category) {
                 values: [[formattedDate, category, numericAmount, details]],
             },
         });
+
+        if (response.status === 200) {
+            console.log('Transaction added to Transactions tab successfully.');
+        } else {
+            console.error(`Failed to add transaction. Status: ${response.status}, Message: ${response.statusText}`);
+        }
     } catch (error) {
         console.error('Error adding categorized transaction:', error);
     }
@@ -556,23 +562,9 @@ app.delete('/uncategorized-transactions/:rowIndex', async (req, res) => {
     try {
         const rowIndexInt = parseInt(rowIndex);
 
-        // Delete the transaction from the uncategorized tab
-        await deleteUncategorizedTransaction(rowIndexInt); // Ensure the correct index is passed
-
-        res.status(200).json({ message: 'Transaction deleted successfully.' });
-    } catch (error) {
-        console.error(`Error deleting uncategorized transaction with ID ${rowIndex}:`, error);
-        res.status(500).json({ error: 'Failed to delete transaction.' });
-    }
-});
-
-app.delete('/uncategorized-transactions/:rowIndex', async (req, res) => {
-    const { rowIndex } = req.params;
-
-    try {
         // Fetch the uncategorized transaction to be deleted
         const transactions = await getUncategorizedTransactions();
-        const transactionToDelete = transactions.find(t => t.id === parseInt(rowIndex));
+        const transactionToDelete = transactions.find(t => t.id === rowIndexInt);
 
         if (!transactionToDelete) {
             console.error(`Transaction with ID ${rowIndex} not found.`);
@@ -596,13 +588,13 @@ app.delete('/uncategorized-transactions/:rowIndex', async (req, res) => {
             return res.status(403).json({ error: 'Cannot delete transaction. No matching keywords found.' });
         }
 
-        // Add the transaction to the categorized tab
+        // Add the transaction to the categorized tab first
         await addTransaction(transactionToDelete.date, transactionToDelete.details, transactionToDelete.amount, matchingKeyword.category);
 
-        // Delete the transaction from the uncategorized tab
-        await deleteUncategorizedTransaction(rowIndex); // Make sure this is the right logic
+        // Then delete the transaction from the uncategorized tab
+        await deleteUncategorizedTransaction(rowIndexInt);
 
-        res.status(200).json({ message: 'Transactions moved to categorized and deleted from uncategorized.' });
+        res.status(200).json({ message: 'Transaction moved to categorized and deleted from uncategorized.' });
     } catch (error) {
         console.error(`Error deleting uncategorized transaction with ID ${rowIndex}:`, error);
         res.status(500).json({ error: 'Failed to delete transaction.' });
