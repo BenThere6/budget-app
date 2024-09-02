@@ -256,14 +256,14 @@ app.post('/add-transaction', async (req, res) => {
     }
 });
 
-// Function to handle the email checking process
+// Function to process emails and categorize transactions
 async function processEmails() {
     try {
         console.log('Checking for new emails...');
         const transactions = await checkEmails();
         let keywords = await getKeywords();
 
-        // Sort keywords by specificity (length of the keyword and presence of amount)
+        // Sort keywords by specificity (amount presence and then by keyword length)
         keywords.sort((a, b) => {
             // Prioritize keywords with amounts first, then by keyword length
             if (a.amount && !b.amount) return -1;
@@ -277,7 +277,9 @@ async function processEmails() {
             let matched = false;
             for (const { keyword, category, amount } of keywords) {
                 const amountMatches = amount === null || transaction.amount === amount;
-                if (transaction.details.includes(keyword) && amountMatches) {
+                const keywordMatches = transaction.details.includes(keyword);
+
+                if (keywordMatches && amountMatches) {
                     await addTransaction(transaction.date, transaction.details, transaction.amount, category);
                     console.log(`Categorized transaction found and added: ${transaction.details} with category ${category}`);
                     matched = true;
