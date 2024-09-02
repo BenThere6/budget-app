@@ -86,13 +86,16 @@ export default function UncategorizedTransactions() {
         const matchingTransactions = transactions.filter(transaction => 
             transaction.details.includes(newKeyword)
         );
-
-        const deletePromises = matchingTransactions.map(async (transaction) => {
+    
+        // Loop over all matching transactions and delete them
+        for (let i = 0; i < matchingTransactions.length; i++) {
+            const transaction = matchingTransactions[i];
+            
             try {
                 const response = await fetch(`https://budgetapp-dc6bcd57eaee.herokuapp.com/uncategorized-transactions/${transaction.id}`, {
                     method: 'DELETE',
                 });
-
+    
                 if (response.ok) {
                     console.log(`Transaction with ID ${transaction.id} deleted successfully!`);
                     setTransactions(prevTransactions => 
@@ -104,11 +107,9 @@ export default function UncategorizedTransactions() {
             } catch (error) {
                 console.error(`Error deleting transaction with ID ${transaction.id}:`, error.message);
             }
-        });
-
-        await Promise.all(deletePromises);
+        }
     };
-
+    
     const renderTransaction = ({ item }) => (
         <View style={styles.transactionItem}>
             <Text style={styles.transactionDetails}>

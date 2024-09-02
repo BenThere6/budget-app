@@ -569,12 +569,12 @@ app.delete('/uncategorized-transactions/:rowIndex', async (req, res) => {
         // Add the transaction to the categorized tab
         await addTransaction(transactionToDelete.date, transactionToDelete.details, transactionToDelete.amount, matchingKeyword.category);
 
-        // Delete the uncategorized transaction if the move was successful
-        await deleteUncategorizedTransaction(parseInt(rowIndex));
+        // Delete all matching uncategorized transactions
+        await deleteMatchingTransactions(matchingKeyword.keyword);
 
-        res.status(200).json({ message: 'Transaction moved to categorized and deleted from uncategorized.' });
+        res.status(200).json({ message: 'Transactions moved to categorized and deleted from uncategorized.' });
     } catch (error) {
-        console.error('Error deleting uncategorized transaction:', error);
+        console.error('Error deleting uncategorized transactions:', error);
         res.status(500).json({ error: 'Failed to delete transaction.' });
     }
 });
