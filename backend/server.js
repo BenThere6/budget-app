@@ -276,9 +276,10 @@ async function processEmails() {
         for (const transaction of transactions) {
             let matched = false;
             for (const { keyword, category, amount } of keywords) {
-                const amountMatches = amount === null || transaction.amount === amount;
                 const keywordMatches = transaction.details.includes(keyword);
+                const amountMatches = amount === null || transaction.amount === amount;
 
+                // Check if both keyword and amount match
                 if (keywordMatches && amountMatches) {
                     await addTransaction(transaction.date, transaction.details, transaction.amount, category);
                     console.log(`Categorized transaction found and added: ${transaction.details} with category ${category}`);
@@ -286,6 +287,7 @@ async function processEmails() {
                     break;
                 }
             }
+            // If no match is found, add the transaction to the uncategorized list
             if (!matched) {
                 await addUncategorizedTransaction(transaction.date, transaction.details, transaction.amount);
                 console.log(`Uncategorized transaction found and added: ${transaction.details}`);
