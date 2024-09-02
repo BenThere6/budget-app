@@ -8,6 +8,7 @@ export default function UncategorizedTransactions({ navigation }) {
     const [keyword, setKeyword] = useState('');
     const [category, setCategory] = useState('');
     const [amount, setAmount] = useState(''); // New state for amount input
+    const [keywords, setKeywords] = useState([]);  // State for storing keywords
     const [categories, setCategories] = useState([]);
     const [transactions, setTransactions] = useState([]);
     const [isPickerVisible, setPickerVisible] = useState(false);  // State to control Picker visibility
@@ -77,10 +78,12 @@ export default function UncategorizedTransactions({ navigation }) {
                     setKeywords(prevKeywords => [...prevKeywords, { keyword, category, amount }]);
                     deleteMatchingTransactions(keyword);
                 } else {
-                    alert('Failed to save. Try again.');
+                    const errorText = await response.text(); // Capture and show the detailed error
+                    alert(`Failed to save. Try again. Error: ${errorText}`);
                 }
             } catch (error) {
-                alert('Error:', error.message);
+                console.error('Error during saving:', error); // Log detailed error
+                alert(`Error: ${error.message}`);
             }
         } else {
             alert('Please enter both a keyword and a category.');
@@ -90,34 +93,38 @@ export default function UncategorizedTransactions({ navigation }) {
     const deleteMatchingTransactions = async (newKeyword) => {
         const matchingTransactions = transactions
             .map((transaction, index) => ({ ...transaction, originalIndex: index }))
-            .filter(transaction => transaction.details.includes(newKeyword));
-
+            .filter(transaction => {
+                const keywordMatch = transaction.details.includes(newKeyword);
+                const amountMatch = !amount || transaction.amount === amount;
+                return keywordMatch && amountMatch;
+            });
+    
         // Sort transactions by original index in descending order (from bottom to top)
         matchingTransactions.sort((a, b) => b.originalIndex - a.originalIndex);
-
-        // Loop over all matching transactions and delete them from bottom to top
+    
         for (let i = 0; i < matchingTransactions.length; i++) {
             const transaction = matchingTransactions[i];
-
+    
             try {
                 const response = await fetch(`https://budgetapp-dc6bcd57eaee.herokuapp.com/uncategorized-transactions/${transaction.id}`, {
                     method: 'DELETE',
                 });
-
+    
                 if (response.ok) {
                     console.log(`Transaction with ID ${transaction.id} deleted successfully!`);
                     setTransactions(prevTransactions =>
                         prevTransactions.filter(t => t.id !== transaction.id)
                     );
                 } else {
-                    console.error(`Failed to delete transaction with ID ${transaction.id}. Response status: ${response.status}`);
+                    const errorText = await response.text(); // Get more details about the error
+                    console.error(`Failed to delete transaction with ID ${transaction.id}. Error: ${errorText}`);
                 }
             } catch (error) {
                 console.error(`Error deleting transaction with ID ${transaction.id}:`, error.message);
             }
         }
     };
-
+    
     // Render each transaction item
     const renderTransaction = ({ item, index }) => {
         const isHeader = index === 0;

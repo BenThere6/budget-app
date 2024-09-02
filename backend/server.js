@@ -535,7 +535,7 @@ async function deleteUncategorizedTransaction(rowIndex) {
                             range: {
                                 sheetId: sheetId,
                                 dimension: 'ROWS',
-                                startIndex: rowIndex, // Assuming rowIndex starts from 2
+                                startIndex: rowIndex - 1, // Adjusted to match Google Sheets API 0-based indexing
                                 endIndex: rowIndex,
                             },
                         },
@@ -549,6 +549,22 @@ async function deleteUncategorizedTransaction(rowIndex) {
         throw error; // Rethrow error to handle it in the calling function
     }
 }
+
+app.delete('/uncategorized-transactions/:rowIndex', async (req, res) => {
+    const { rowIndex } = req.params;
+
+    try {
+        const rowIndexInt = parseInt(rowIndex);
+
+        // Delete the transaction from the uncategorized tab
+        await deleteUncategorizedTransaction(rowIndexInt); // Ensure the correct index is passed
+
+        res.status(200).json({ message: 'Transaction deleted successfully.' });
+    } catch (error) {
+        console.error(`Error deleting uncategorized transaction with ID ${rowIndex}:`, error);
+        res.status(500).json({ error: 'Failed to delete transaction.' });
+    }
+});
 
 app.delete('/uncategorized-transactions/:rowIndex', async (req, res) => {
     const { rowIndex } = req.params;
