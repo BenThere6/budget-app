@@ -54,9 +54,13 @@ async function getKeywords() {
     try {
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
-            range: 'Keywords!A:B',
+            range: 'Keywords!A:C',  // Adjust the range to include the third column for amount
         });
-        return response.data.values; // Returns an array of [keyword, category]
+        return response.data.values.map(([keyword, category, amount]) => ({
+            keyword,
+            category,
+            amount: amount ? parseFloat(amount) : null, // Convert amount to number or null if not provided
+        })); // Returns an array of { keyword, category, amount }
     } catch (error) {
         console.error('Error fetching keywords:', error);
         return [];
@@ -257,8 +261,9 @@ async function processEmails() {
 
         for (const transaction of transactions) {
             let matched = false;
-            for (const [keyword, category] of keywords) {
-                if (transaction.details.includes(keyword)) {
+            for (const { keyword, category, amount } of keywords) {
+                const amountMatches = amount === null || transaction.amount === amount;
+                if (transaction.details.includes(keyword) && amountMatches) {
                     await addTransaction(transaction.date, transaction.details, transaction.amount, category);
                     console.log(`Categorized transaction found and added: ${transaction.details}`);
                     matched = true;
