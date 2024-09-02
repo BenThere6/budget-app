@@ -7,6 +7,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 export default function UncategorizedTransactions({ navigation }) {
     const [keyword, setKeyword] = useState('');
     const [category, setCategory] = useState('');
+    const [amount, setAmount] = useState(''); // New state for amount input
     const [categories, setCategories] = useState([]);
     const [transactions, setTransactions] = useState([]);
     const [keywords, setKeywords] = useState([]);  // Local keyword list
@@ -48,15 +49,16 @@ export default function UncategorizedTransactions({ navigation }) {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ keyword, category }),
+                    body: JSON.stringify({ keyword, category, amount: amount || null }), // Include amount if provided
                 });
 
                 if (response.ok) {
-                    alert('Keyword and Category saved successfully!');
+                    alert('Keyword, Category, and Amount saved successfully!');
                     setKeyword('');
                     setCategory('');
+                    setAmount(''); // Clear the amount input
 
-                    setKeywords(prevKeywords => [...prevKeywords, [keyword, category]]);
+                    setKeywords(prevKeywords => [...prevKeywords, { keyword, category, amount }]);
                     deleteMatchingTransactions(keyword);
                 } else {
                     alert('Failed to save. Try again.');
@@ -70,26 +72,31 @@ export default function UncategorizedTransactions({ navigation }) {
     };
 
     const deleteMatchingTransactions = async (newKeyword) => {
-        // Get transactions that match the keyword
         const matchingTransactions = transactions
             .map((transaction, index) => ({ ...transaction, originalIndex: index }))
             .filter(transaction => transaction.details.includes(newKeyword));
     
+    
+        // Sort transactions by original index in descending order (from bottom to top)
+
         // Sort transactions by original index in descending order (from bottom to top)
         matchingTransactions.sort((a, b) => b.originalIndex - a.originalIndex);
     
+    
+        // Loop over all matching transactions and delete them from bottom to top
+
         // Loop over all matching transactions and delete them from bottom to top
         for (let i = 0; i < matchingTransactions.length; i++) {
             const transaction = matchingTransactions[i];
-            
+
             try {
                 const response = await fetch(`https://budgetapp-dc6bcd57eaee.herokuapp.com/uncategorized-transactions/${transaction.id}`, {
                     method: 'DELETE',
                 });
-    
+
                 if (response.ok) {
                     console.log(`Transaction with ID ${transaction.id} deleted successfully!`);
-                    setTransactions(prevTransactions => 
+                    setTransactions(prevTransactions =>
                         prevTransactions.filter(t => t.id !== transaction.id)
                     );
                 } else {
@@ -118,8 +125,8 @@ export default function UncategorizedTransactions({ navigation }) {
     };
 
     return (
-        <KeyboardAvoidingView 
-            style={styles.container} 
+        <KeyboardAvoidingView
+            style={styles.container}
             behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
             {isLoading ? (
@@ -147,6 +154,13 @@ export default function UncategorizedTransactions({ navigation }) {
                         {category ? category : "Select a Category"}
                     </Text>
                 </TouchableOpacity>
+                <TextInput
+                    style={styles.input} // Input field for amount
+                    placeholder="Enter Amount (optional)"
+                    value={amount}
+                    onChangeText={setAmount}
+                    keyboardType="numeric"
+                />
                 <Button title="Save Keyword & Category" onPress={handleSave} />
             </View>
             <Modal
