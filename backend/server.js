@@ -523,7 +523,7 @@ async function deleteUncategorizedTransaction(rowIndex) {
                             range: {
                                 sheetId: sheetId,
                                 dimension: 'ROWS',
-                                startIndex: rowIndex - 1, // Assuming rowIndex starts from 1
+                                startIndex: rowIndex, // Assuming rowIndex starts from 2
                                 endIndex: rowIndex,
                             },
                         },

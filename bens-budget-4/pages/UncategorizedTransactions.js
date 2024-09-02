@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, Button, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
+import { View, Button, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import Modal from 'react-native-modal';
+import { MaterialIcons } from '@expo/vector-icons';
 
-export default function UncategorizedTransactions() {
+export default function UncategorizedTransactions({ navigation }) {
     const [keyword, setKeyword] = useState('');
     const [category, setCategory] = useState('');
     const [categories, setCategories] = useState([]);
@@ -25,31 +26,17 @@ export default function UncategorizedTransactions() {
         }
     };
 
+    useLayoutEffect(() => {
+        navigation.setOptions({
+            headerRight: () => (
+                <TouchableOpacity onPress={fetchUncategorizedTransactions}>
+                    <MaterialIcons name="refresh" size={24} color="black" style={{ marginRight: 15 }} />
+                </TouchableOpacity>
+            ),
+        });
+    }, [navigation]);
+
     useEffect(() => {
-        const fetchCategories = async () => {
-            try {
-                const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/categories');
-                const data = await response.json();
-                setCategories(data);
-            } catch (error) {
-                console.error('Error fetching categories:', error);
-            }
-        };
-
-        fetchCategories();
-
-        const fetchKeywords = async () => {
-            try {
-                const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/keywords');
-                const data = await response.json();
-                setKeywords(data);  // Set the initial keyword list
-            } catch (error) {
-                console.error('Error fetching keywords:', error);
-            }
-        };
-
-        fetchKeywords();
-
         fetchUncategorizedTransactions();
     }, []);
 
@@ -173,7 +160,6 @@ export default function UncategorizedTransactions() {
                     <Button title="Done" onPress={() => setPickerVisible(false)} />
                 </View>
             </Modal>
-            <Button title="Refresh" onPress={fetchUncategorizedTransactions} />
         </KeyboardAvoidingView>
     );
 }
