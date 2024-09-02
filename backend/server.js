@@ -261,7 +261,15 @@ async function processEmails() {
     try {
         console.log('Checking for new emails...');
         const transactions = await checkEmails();
-        const keywords = await getKeywords();
+        let keywords = await getKeywords();
+
+        // Sort keywords by specificity (length of the keyword and presence of amount)
+        keywords.sort((a, b) => {
+            // Prioritize keywords with amounts first, then by keyword length
+            if (a.amount && !b.amount) return -1;
+            if (!a.amount && b.amount) return 1;
+            return b.keyword.length - a.keyword.length;
+        });
 
         let newUncategorizedCount = 0;
 
@@ -271,7 +279,7 @@ async function processEmails() {
                 const amountMatches = amount === null || transaction.amount === amount;
                 if (transaction.details.includes(keyword) && amountMatches) {
                     await addTransaction(transaction.date, transaction.details, transaction.amount, category);
-                    console.log(`Categorized transaction found and added: ${transaction.details}`);
+                    console.log(`Categorized transaction found and added: ${transaction.details} with category ${category}`);
                     matched = true;
                     break;
                 }
