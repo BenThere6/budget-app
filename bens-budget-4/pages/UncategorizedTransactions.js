@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, Button, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, Button, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 
 export default function UncategorizedTransactions() {
@@ -7,6 +7,7 @@ export default function UncategorizedTransactions() {
     const [category, setCategory] = useState('');
     const [categories, setCategories] = useState([]);
     const [transactions, setTransactions] = useState([]);
+    const [keywords, setKeywords] = useState([]);  // Local keyword list
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -20,6 +21,19 @@ export default function UncategorizedTransactions() {
         };
 
         fetchCategories();
+
+        // Fetch the initial keyword list
+        const fetchKeywords = async () => {
+            try {
+                const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/keywords');
+                const data = await response.json();
+                setKeywords(data);  // Set the initial keyword list
+            } catch (error) {
+                console.error('Error fetching keywords:', error);
+            }
+        };
+
+        fetchKeywords();
     }, []);
 
     useEffect(() => {
@@ -52,10 +66,11 @@ export default function UncategorizedTransactions() {
                     setKeyword('');
                     setCategory('');
                     
-                    // Fetch the updated keywords list
-                    const keywordsResponse = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/keywords');
-                    const updatedKeywords = await keywordsResponse.json();
-                    setCategories(updatedKeywords); // Update the categories in state
+                    // Update the local keywords list with the new keyword
+                    setKeywords(prevKeywords => [...prevKeywords, [keyword, category]]);
+                    
+                    // Automatically delete matching transactions
+                    deleteMatchingTransactions(keyword);
                 } else {
                     alert('Failed to save. Try again.');
                 }
@@ -67,54 +82,39 @@ export default function UncategorizedTransactions() {
         }
     };    
 
-    const handleDelete = async (id) => {
-        try {
-            const response = await fetch(`https://budgetapp-dc6bcd57eaee.herokuapp.com/uncategorized-transactions/${id}`, {
-                method: 'DELETE',
-            });
-
-            if (response.ok) {
-                alert('Transaction deleted successfully!');
-                setTransactions(transactions.filter(transaction => transaction.id !== id));
-            } else {
-                alert('Failed to delete transaction. Try again.');
-            }
-        } catch (error) {
-            alert('Error:', error.message);
-        }
-    };
-
-    const confirmDelete = async (id) => {
-        // Fetch the updated keywords list
-        const keywordsResponse = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/keywords');
-        const updatedKeywords = await keywordsResponse.json();
-        setCategories(updatedKeywords); // Update the categories in state
-    
-        // Now, check if the transaction can be deleted
-        Alert.alert(
-            "Delete Transaction",
-            "Are you sure you want to delete this transaction?",
-            [
-                {
-                    text: "Cancel",
-                    style: "cancel"
-                },
-                {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: () => handleDelete(id)
-                }
-            ]
+    const deleteMatchingTransactions = async (newKeyword) => {
+        const matchingTransactions = transactions.filter(transaction => 
+            transaction.details.includes(newKeyword)
         );
-    };    
-
+    
+        const deletePromises = matchingTransactions.map(async (transaction) => {
+            try {
+                const response = await fetch(`https://budgetapp-dc6bcd57eaee.herokuapp.com/uncategorized-transactions/${transaction.id}`, {
+                    method: 'DELETE',
+                });
+    
+                if (response.ok) {
+                    console.log(`Transaction with ID ${transaction.id} deleted successfully!`);
+                    setTransactions(prevTransactions => 
+                        prevTransactions.filter(t => t.id !== transaction.id)
+                    );
+                } else {
+                    console.error(`Failed to delete transaction with ID ${transaction.id}.`);
+                }
+            } catch (error) {
+                console.error(`Error deleting transaction with ID ${transaction.id}:`, error.message);
+            }
+        });
+    
+        await Promise.all(deletePromises);
+    };
+    
     const renderTransaction = ({ item }) => (
         <View style={styles.transactionItem}>
             <Text style={styles.transactionDetails}>
                 {item.details.length > 50 ? `${item.details.substring(0, 50)}...` : item.details}
             </Text>
             <Text style={styles.transactionAmount}>{`$${item.amount}`}</Text>
-            <Button title="Delete" color="red" onPress={() => confirmDelete(item.id)} />
         </View>
     );
 
