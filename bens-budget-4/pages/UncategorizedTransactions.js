@@ -102,13 +102,13 @@ export default function UncategorizedTransactions() {
                         prevTransactions.filter(t => t.id !== transaction.id)
                     );
                 } else {
-                    console.error(`Failed to delete transaction with ID ${transaction.id}.`);
+                    console.error(`Failed to delete transaction with ID ${transaction.id}. Response status: ${response.status}`);
                 }
             } catch (error) {
                 console.error(`Error deleting transaction with ID ${transaction.id}:`, error.message);
             }
         }
-    };
+    };    
     
     const renderTransaction = ({ item }) => (
         <View style={styles.transactionItem}>
