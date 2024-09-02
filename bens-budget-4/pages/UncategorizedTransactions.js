@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, Button, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, Button, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import Modal from 'react-native-modal';
 
@@ -10,6 +10,20 @@ export default function UncategorizedTransactions() {
     const [transactions, setTransactions] = useState([]);
     const [keywords, setKeywords] = useState([]);  // Local keyword list
     const [isPickerVisible, setPickerVisible] = useState(false);  // State to control Picker visibility
+    const [isLoading, setIsLoading] = useState(true);  // State for loading indicator
+
+    const fetchUncategorizedTransactions = async () => {
+        setIsLoading(true);  // Start loading indicator
+        try {
+            const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/uncategorized-transactions');
+            const data = await response.json();
+            setTransactions(data);
+        } catch (error) {
+            console.error('Error fetching uncategorized transactions:', error);
+        } finally {
+            setIsLoading(false);  // Stop loading indicator
+        }
+    };
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -35,18 +49,6 @@ export default function UncategorizedTransactions() {
         };
 
         fetchKeywords();
-    }, []);
-
-    useEffect(() => {
-        const fetchUncategorizedTransactions = async () => {
-            try {
-                const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/uncategorized-transactions');
-                const data = await response.json();
-                setTransactions(data);
-            } catch (error) {
-                console.error('Error fetching uncategorized transactions:', error);
-            }
-        };
 
         fetchUncategorizedTransactions();
     }, []);
@@ -121,12 +123,19 @@ export default function UncategorizedTransactions() {
             style={styles.container} 
             behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
-            <FlatList
-                data={transactions}
-                renderItem={renderTransaction}
-                keyExtractor={item => item.id.toString()}
-                contentContainerStyle={styles.transactionList}
-            />
+            {isLoading ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#000000" />
+                    <Text>Fetching Transactions...</Text>
+                </View>
+            ) : (
+                <FlatList
+                    data={transactions}
+                    renderItem={renderTransaction}
+                    keyExtractor={item => item.id.toString()}
+                    contentContainerStyle={styles.transactionList}
+                />
+            )}
             <View style={styles.footerContainer}>
                 <TextInput
                     style={styles.input}
@@ -159,6 +168,7 @@ export default function UncategorizedTransactions() {
                     <Button title="Done" onPress={() => setPickerVisible(false)} />
                 </View>
             </Modal>
+            <Button title="Refresh" onPress={fetchUncategorizedTransactions} />
         </KeyboardAvoidingView>
     );
 }
@@ -167,6 +177,11 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         padding: 20,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     transactionList: {
         flexGrow: 1,

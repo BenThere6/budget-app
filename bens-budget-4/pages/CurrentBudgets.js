@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Button, ActivityIndicator } from 'react-native';
 
 export default function CurrentBudgets() {
   const [budgetData, setBudgetData] = useState({
@@ -8,28 +8,39 @@ export default function CurrentBudgets() {
     gas: '',
     other: ''
   });
+  const [isLoading, setIsLoading] = useState(true);  // State for loading indicator
+
+  const fetchBudgetData = async () => {
+    setIsLoading(true);  // Start loading indicator
+    try {
+      const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/budget/');
+      const data = await response.json();
+      setBudgetData(data);
+    } catch (error) {
+      console.error('Error fetching budget data:', error);
+    } finally {
+      setIsLoading(false);  // Stop loading indicator
+    }
+  };
 
   useEffect(() => {
-    const fetchBudgetData = async () => {
-      try {
-        const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/budget/');
-        const data = await response.json();
-        setBudgetData(data);
-      } catch (error) {
-        console.error('Error fetching budget data:', error);
-      }
-    };
-
     fetchBudgetData();
   }, []);
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Current Budgets</Text>
-      <Text style={styles.text}>Food: {budgetData.food}</Text>
-      <Text style={styles.text}>Shopping: {budgetData.shopping}</Text>
-      <Text style={styles.text}>Gas: {budgetData.gas}</Text>
-      <Text style={styles.text}>Other: {budgetData.other}</Text>
+      {isLoading ? (
+        <ActivityIndicator size="large" color="#000000" />
+      ) : (
+        <>
+          <Text style={styles.text}>Food: {budgetData.food}</Text>
+          <Text style={styles.text}>Shopping: {budgetData.shopping}</Text>
+          <Text style={styles.text}>Gas: {budgetData.gas}</Text>
+          <Text style={styles.text}>Other: {budgetData.other}</Text>
+        </>
+      )}
+      <Button title="Refresh" onPress={fetchBudgetData} />
     </View>
   );
 }
