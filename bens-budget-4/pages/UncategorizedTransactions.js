@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, Button, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, Button, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import Modal from 'react-native-modal';
 
 export default function UncategorizedTransactions() {
     const [keyword, setKeyword] = useState('');
@@ -8,6 +9,7 @@ export default function UncategorizedTransactions() {
     const [categories, setCategories] = useState([]);
     const [transactions, setTransactions] = useState([]);
     const [keywords, setKeywords] = useState([]);  // Local keyword list
+    const [isPickerVisible, setPickerVisible] = useState(false);  // State to control Picker visibility
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -22,7 +24,6 @@ export default function UncategorizedTransactions() {
 
         fetchCategories();
 
-        // Fetch the initial keyword list
         const fetchKeywords = async () => {
             try {
                 const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/keywords');
@@ -60,16 +61,13 @@ export default function UncategorizedTransactions() {
                     },
                     body: JSON.stringify({ keyword, category }),
                 });
-    
+
                 if (response.ok) {
                     alert('Keyword and Category saved successfully!');
                     setKeyword('');
                     setCategory('');
-                    
-                    // Update the local keywords list with the new keyword
+
                     setKeywords(prevKeywords => [...prevKeywords, [keyword, category]]);
-                    
-                    // Automatically delete matching transactions
                     deleteMatchingTransactions(keyword);
                 } else {
                     alert('Failed to save. Try again.');
@@ -80,19 +78,19 @@ export default function UncategorizedTransactions() {
         } else {
             alert('Please enter both a keyword and a category.');
         }
-    };    
+    };
 
     const deleteMatchingTransactions = async (newKeyword) => {
         const matchingTransactions = transactions.filter(transaction => 
             transaction.details.includes(newKeyword)
         );
-    
+
         const deletePromises = matchingTransactions.map(async (transaction) => {
             try {
                 const response = await fetch(`https://budgetapp-dc6bcd57eaee.herokuapp.com/uncategorized-transactions/${transaction.id}`, {
                     method: 'DELETE',
                 });
-    
+
                 if (response.ok) {
                     console.log(`Transaction with ID ${transaction.id} deleted successfully!`);
                     setTransactions(prevTransactions => 
@@ -105,10 +103,10 @@ export default function UncategorizedTransactions() {
                 console.error(`Error deleting transaction with ID ${transaction.id}:`, error.message);
             }
         });
-    
+
         await Promise.all(deletePromises);
     };
-    
+
     const renderTransaction = ({ item }) => (
         <View style={styles.transactionItem}>
             <Text style={styles.transactionDetails}>
@@ -119,18 +117,38 @@ export default function UncategorizedTransactions() {
     );
 
     return (
-        <View style={styles.container}>
-            <View style={styles.headerContainer}>
+        <KeyboardAvoidingView 
+            style={styles.container} 
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+            <FlatList
+                data={transactions}
+                renderItem={renderTransaction}
+                keyExtractor={item => item.id.toString()}
+                contentContainerStyle={styles.transactionList}
+            />
+            <View style={styles.footerContainer}>
                 <TextInput
                     style={styles.input}
                     placeholder="Enter Keyword"
                     value={keyword}
                     onChangeText={setKeyword}
                 />
-                <View style={styles.pickerWrapper}>
+                <TouchableOpacity style={styles.pickerButton} onPress={() => setPickerVisible(true)}>
+                    <Text style={styles.pickerButtonText}>
+                        {category ? category : "Select a Category"}
+                    </Text>
+                </TouchableOpacity>
+                <Button title="Save Keyword & Category" onPress={handleSave} />
+            </View>
+            <Modal
+                isVisible={isPickerVisible}
+                onBackdropPress={() => setPickerVisible(false)}
+                style={styles.modal}
+            >
+                <View style={styles.pickerModal}>
                     <Picker
                         selectedValue={category}
-                        style={styles.picker}
                         onValueChange={(itemValue) => setCategory(itemValue)}
                     >
                         <Picker.Item label="Select a Category" value="" />
@@ -138,16 +156,10 @@ export default function UncategorizedTransactions() {
                             <Picker.Item key={index} label={cat} value={cat} />
                         ))}
                     </Picker>
+                    <Button title="Done" onPress={() => setPickerVisible(false)} />
                 </View>
-                <Button title="Save Keyword & Category" onPress={handleSave} />
-            </View>
-            <FlatList
-                data={transactions}
-                renderItem={renderTransaction}
-                keyExtractor={item => item.id.toString()}
-                contentContainerStyle={styles.transactionList}
-            />
-        </View>
+            </Modal>
+        </KeyboardAvoidingView>
     );
 }
 
@@ -155,25 +167,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         padding: 20,
-    },
-    headerContainer: {
-        marginBottom: 20,
-    },
-    input: {
-        height: 40,
-        borderColor: 'gray',
-        borderWidth: 1,
-        marginBottom: 10,
-        paddingLeft: 8,
-    },
-    pickerWrapper: {
-        marginBottom: 170,
-        height: 40, // Standard height for input field
-        justifyContent: 'center',
-    },
-    picker: {
-        height: 40,
-        width: '100%',
     },
     transactionList: {
         flexGrow: 1,
@@ -187,11 +180,40 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     transactionDetails: {
-        flex: 1, // This allows the details to take up remaining space
-        marginRight: 10, // Add some space between details and amount
+        flex: 1,
+        marginRight: 10,
     },
     transactionAmount: {
-        width: 70, // Set a fixed width to ensure alignment
-        textAlign: 'left', // Align the text to the right within its box
+        width: 70,
+        textAlign: 'left',
+    },
+    footerContainer: {
+        flexDirection: 'column',
+        justifyContent: 'flex-end',
+    },
+    input: {
+        height: 40,
+        borderColor: 'gray',
+        borderWidth: 1,
+        marginBottom: 10,
+        paddingLeft: 8,
+    },
+    pickerButton: {
+        height: 40,
+        justifyContent: 'center',
+        backgroundColor: '#ddd',
+        marginBottom: 10,
+        paddingLeft: 8,
+    },
+    pickerButtonText: {
+        fontSize: 16,
+    },
+    modal: {
+        justifyContent: 'flex-end',
+        margin: 0,
+    },
+    pickerModal: {
+        backgroundColor: 'white',
+        padding: 20,
     },
 });
