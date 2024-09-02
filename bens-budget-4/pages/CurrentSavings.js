@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Button, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 
-export default function CurrentSavings() {
+export default function CurrentSavings({ navigation }) {
   const [savingsData, setSavingsData] = useState({
     emergency: '',
     general: '',
@@ -26,6 +27,16 @@ export default function CurrentSavings() {
     }
   };
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={fetchSavingsData}>
+          <MaterialIcons name="refresh" size={24} color="black" style={{ marginRight: 15 }} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
   useEffect(() => {
     fetchSavingsData();
   }, []);
@@ -46,7 +57,6 @@ export default function CurrentSavings() {
           <Text style={styles.text}>Travel/Vacation: {savingsData.travelVacation}</Text>
         </>
       )}
-      <Button title="Refresh" onPress={fetchSavingsData} />
     </View>
   );
 }

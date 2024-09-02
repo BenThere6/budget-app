@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Button, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons'; // Import Material Icons
 
-export default function CurrentBudgets() {
+export default function CurrentBudgets({ navigation }) {
   const [budgetData, setBudgetData] = useState({
     food: '',
     shopping: '',
@@ -23,6 +24,16 @@ export default function CurrentBudgets() {
     }
   };
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={fetchBudgetData}>
+          <MaterialIcons name="refresh" size={24} color="black" style={{ marginRight: 15 }} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
   useEffect(() => {
     fetchBudgetData();
   }, []);
@@ -40,7 +51,6 @@ export default function CurrentBudgets() {
           <Text style={styles.text}>Other: {budgetData.other}</Text>
         </>
       )}
-      <Button title="Refresh" onPress={fetchBudgetData} />
     </View>
   );
 }
