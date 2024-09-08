@@ -177,7 +177,7 @@ export default function UncategorizedTransactions({ navigation }) {
 
     // Render each transaction item
     const renderTransaction = ({ item, index }) => {
-        const isHeader = index === -1;
+        const isHeader = index === -1; // -1 to remove this logic. Not needed.
 
         return (
             <View style={styles.transactionRow}>
