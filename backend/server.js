@@ -447,7 +447,7 @@ app.delete('/delete-keyword', async (req, res) => {
                             range: {
                                 sheetId: sheetId,
                                 dimension: 'ROWS',
-                                startIndex: keywordIndex + 1, // Offset by 1 to account for the header row
+                                startIndex: keywordIndex + 0, // Offset by 1 to account for the header row
                                 endIndex: keywordIndex + 2,
                             },
                         },
