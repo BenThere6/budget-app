@@ -417,6 +417,52 @@ app.post('/save-keyword', async (req, res) => {
     }
 });
 
+app.delete('/delete-keyword', async (req, res) => {
+    const { keyword } = req.body;
+
+    try {
+        // Fetch all keywords from the Google Sheets
+        const keywords = await getKeywords();
+
+        // Find the index of the keyword in the sheet
+        const keywordIndex = keywords.findIndex(k => k.keyword === keyword);
+
+        if (keywordIndex === -1) {
+            return res.status(404).send('Keyword not found.');
+        }
+
+        // Get the sheet ID of the "Keywords" tab
+        const sheetId = await getSheetId('Keywords');
+        if (!sheetId) {
+            return res.status(500).send('Failed to retrieve the sheet ID.');
+        }
+
+        // Delete the row corresponding to the keyword in the sheet
+        await google.sheets({ version: 'v4', auth: client }).spreadsheets.batchUpdate({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            resource: {
+                requests: [
+                    {
+                        deleteDimension: {
+                            range: {
+                                sheetId: sheetId,
+                                dimension: 'ROWS',
+                                startIndex: keywordIndex + 1, // Offset by 1 to account for the header row
+                                endIndex: keywordIndex + 2,
+                            },
+                        },
+                    },
+                ],
+            },
+        });
+
+        res.status(200).send('Keyword deleted successfully.');
+    } catch (error) {
+        console.error('Error deleting keyword:', error);
+        res.status(500).send('Failed to delete keyword.');
+    }
+});
+
 // Function to send a push notification
 async function sendPushNotification(token, message) {
     if (!Expo.isExpoPushToken(token)) {
