@@ -13,6 +13,7 @@ export default function UncategorizedTransactions({ navigation }) {
     const [transactions, setTransactions] = useState([]);
     const [isPickerVisible, setPickerVisible] = useState(false);  // State to control Picker visibility
     const [isLoading, setIsLoading] = useState(true);  // State for loading indicator
+    const [isKeywordModalVisible, setKeywordModalVisible] = useState(false); // State for keyword modal visibility
 
     // Fetch uncategorized transactions
     const fetchUncategorizedTransactions = async () => {
@@ -39,8 +40,56 @@ export default function UncategorizedTransactions({ navigation }) {
         }
     };
 
+    // Fetch keywords from the server
+    // Fetch keywords from the server and skip the first row (header)
+    const fetchKeywords = async () => {
+        try {
+            const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/keywords');
+            const data = await response.json();
+
+            // Skip the first row, which is the header
+            if (data.length > 0) {
+                const keywordsWithoutHeader = data.slice(1); // Slice to remove the first row
+                setKeywords(keywordsWithoutHeader);
+            } else {
+                setKeywords([]); // Handle the case where no data is returned
+            }
+        } catch (error) {
+            console.error('Error fetching keywords:', error);
+        }
+    };
+
+    // Delete a keyword from the server
+    const deleteKeyword = async (keywordToDelete) => {
+        try {
+            const response = await fetch(`https://budgetapp-dc6bcd57eaee.herokuapp.com/delete-keyword`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ keyword: keywordToDelete }),
+            });
+
+            if (response.ok) {
+                alert('Keyword deleted successfully!');
+                // Remove the deleted keyword from the local state
+                setKeywords(prevKeywords => prevKeywords.filter(k => k.keyword !== keywordToDelete));
+            } else {
+                const errorText = await response.text();
+                alert(`Failed to delete keyword. Error: ${errorText}`);
+            }
+        } catch (error) {
+            console.error('Error deleting keyword:', error);
+        }
+    };
+
     useLayoutEffect(() => {
         navigation.setOptions({
+            headerLeft: () => (
+                <TouchableOpacity onPress={() => setKeywordModalVisible(true)}>
+                    <MaterialIcons name="menu" size={24} color="black" style={{ marginLeft: 15 }} />
+                </TouchableOpacity>
+            ),
             headerRight: () => (
                 <TouchableOpacity onPress={fetchUncategorizedTransactions}>
                     <MaterialIcons name="refresh" size={24} color="black" style={{ marginRight: 15 }} />
@@ -54,6 +103,12 @@ export default function UncategorizedTransactions({ navigation }) {
         fetchCategories();  // Fetch categories when the component loads
     }, []);
 
+    useEffect(() => {
+        if (isKeywordModalVisible) {
+            fetchKeywords();  // Fetch keywords when the modal opens
+        }
+    }, [isKeywordModalVisible]);
+
     const handleSave = async () => {
         if (keyword && category) {
             try {
@@ -62,19 +117,19 @@ export default function UncategorizedTransactions({ navigation }) {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ 
-                        keyword, 
-                        category, 
+                    body: JSON.stringify({
+                        keyword,
+                        category,
                         amount: amount || null // Include amount if provided 
                     }),
                 });
-    
+
                 if (response.ok) {
                     alert('Keyword, Category, and Amount saved successfully!');
                     setKeyword('');
                     setCategory('');
                     setAmount(''); // Clear the amount input
-    
+
                     setKeywords(prevKeywords => [...prevKeywords, { keyword, category, amount }]);
                     deleteMatchingTransactions(keyword);
                 } else {
@@ -89,7 +144,7 @@ export default function UncategorizedTransactions({ navigation }) {
             alert('Please enter both a keyword and a category.');
         }
     };
-    
+
     const deleteMatchingTransactions = async (newKeyword) => {
         const matchingTransactions = transactions
             .map((transaction, index) => ({ ...transaction, originalIndex: index }))
@@ -98,18 +153,18 @@ export default function UncategorizedTransactions({ navigation }) {
                 const amountMatch = !amount || transaction.amount === amount;
                 return keywordMatch && amountMatch;
             });
-    
+
         // Sort transactions by original index in descending order (from bottom to top)
         matchingTransactions.sort((a, b) => b.originalIndex - a.originalIndex);
-    
+
         for (let i = 0; i < matchingTransactions.length; i++) {
             const transaction = matchingTransactions[i];
-    
+
             try {
                 const response = await fetch(`https://budgetapp-dc6bcd57eaee.herokuapp.com/uncategorized-transactions/${transaction.id}`, {
                     method: 'DELETE',
                 });
-    
+
                 if (response.ok) {
                     console.log(`Transaction with ID ${transaction.id} deleted successfully!`);
                     setTransactions(prevTransactions =>
@@ -124,7 +179,7 @@ export default function UncategorizedTransactions({ navigation }) {
             }
         }
     };
-    
+
     // Render each transaction item
     const renderTransaction = ({ item, index }) => {
         const isHeader = index === 0;
@@ -141,6 +196,16 @@ export default function UncategorizedTransactions({ navigation }) {
         );
     };
 
+    // Render each keyword item
+    const renderKeywordItem = ({ item }) => (
+        <View style={styles.keywordItem}>
+            <Text>{item.keyword} - {item.category}</Text>
+            <TouchableOpacity onPress={() => deleteKeyword(item.keyword)}>
+                <MaterialIcons name="delete" size={24} color="red" />
+            </TouchableOpacity>
+        </View>
+    );
+    
     return (
         <KeyboardAvoidingView
             style={styles.container}
@@ -180,6 +245,8 @@ export default function UncategorizedTransactions({ navigation }) {
                 />
                 <Button title="Save Keyword & Category" onPress={handleSave} />
             </View>
+
+            {/* Modal for selecting category */}
             <Modal
                 isVisible={isPickerVisible}
                 onBackdropPress={() => setPickerVisible(false)}
@@ -196,6 +263,24 @@ export default function UncategorizedTransactions({ navigation }) {
                         ))}
                     </Picker>
                     <Button title="Done" onPress={() => setPickerVisible(false)} />
+                </View>
+            </Modal>
+
+            {/* Modal for viewing and deleting keywords */}
+            <Modal
+                isVisible={isKeywordModalVisible}
+                onBackdropPress={() => setKeywordModalVisible(false)}
+                style={styles.modal}
+            >
+                <View style={styles.keywordModal}>
+                    <Text style={styles.modalTitle}>Keywords and Categories</Text>
+                    <FlatList
+                        data={keywords}
+                        renderItem={renderKeywordItem}
+                        keyExtractor={(item, index) => `${item.keyword}-${index}`} // Ensure uniqueness by adding the index
+                        contentContainerStyle={[styles.transactionList, { paddingTop: 50 }]}
+                    />
+                    <Button title="Close" onPress={() => setKeywordModalVisible(false)} />
                 </View>
             </Modal>
         </KeyboardAvoidingView>
@@ -261,4 +346,18 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
         padding: 20,
     },
+    keywordModal: {
+        backgroundColor: 'white',
+        padding: 20,
+        borderRadius: 10,
+    },
+    modalTitle: {
+        fontSize: 18,
+        marginBottom: 10,
+    },
+    keywordItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 10,
+    }
 });
