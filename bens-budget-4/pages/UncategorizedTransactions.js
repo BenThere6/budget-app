@@ -175,6 +175,22 @@ export default function UncategorizedTransactions({ navigation }) {
         }
     };
 
+    // Render each transaction item
+    const renderTransaction = ({ item, index }) => {
+        const isHeader = index === -1;
+
+        return (
+            <View style={styles.transactionRow}>
+                <Text style={[styles.transactionDetails, isHeader && styles.boldText]}>
+                    {item.details}
+                </Text>
+                <Text style={[styles.transactionAmount, isHeader && styles.boldText, isHeader ? styles.blackText : styles.greenText]}>
+                    {isHeader ? item.amount : `$${item.amount}`}
+                </Text>
+            </View>
+        );
+    };
+
     const renderKeywordItem = ({ item, index }) => (
         <View style={styles.keywordRow}>
             <View style={styles.keywordColumn}>
@@ -206,12 +222,29 @@ export default function UncategorizedTransactions({ navigation }) {
                     <Text>Fetching Transactions...</Text>
                 </View>
             ) : (
-                <FlatList
-                    data={transactions}
-                    keyExtractor={item => item.id.toString()}
-                    contentContainerStyle={styles.transactionList}
-                />
+                <>
+                    {/* Fixed first row (header) */}
+                    {transactions.length > 0 && (
+                        <View style={styles.transactionRow}>
+                            <Text style={[styles.transactionDetails, styles.boldText]}>
+                                {transactions[0].details}
+                            </Text>
+                            <Text style={[styles.transactionAmount, styles.boldText, styles.blackText]}>
+                                {transactions[0].amount}
+                            </Text>
+                        </View>
+                    )}
+
+                    {/* Scrollable transaction list */}
+                    <FlatList
+                        data={transactions.slice(1)} // Skip the first row
+                        renderItem={renderTransaction}
+                        keyExtractor={item => item.id.toString()}
+                        contentContainerStyle={styles.transactionList}
+                    />
+                </>
             )}
+
             <View style={styles.footerContainer}>
                 <TextInput
                     style={styles.input}
@@ -345,11 +378,11 @@ const styles = StyleSheet.create({
         borderBottomColor: '#ccc',
     },
     keywordColumn: {
-        width: '55%',  // Make the keyword column wider
+        width: '50%',
         marginRight: '5%',
     },
     categoryColumn: {
-        width: '30%',  // Make the category column narrower
+        width: '35%',
     },
     iconColumn: {
         width: '10%',
@@ -363,5 +396,24 @@ const styles = StyleSheet.create({
     },
     boldText: {
         fontWeight: 'bold',
+    },
+    transactionRow: {
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#ccc',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    transactionDetails: {
+        fontSize: 16,
+        flex: 1,
+    },
+    transactionAmount: {
+        fontSize: 16,
+        color: 'green',
+    },
+    blackText: {
+        color: 'black',
     },
 });
