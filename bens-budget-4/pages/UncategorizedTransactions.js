@@ -1,23 +1,26 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
-import { View, Button, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { View, Button, Text, ScrollView, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Dimensions } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import Modal from 'react-native-modal';
 import { MaterialIcons } from '@expo/vector-icons';
 
+// Get device height
+const { height: screenHeight } = Dimensions.get('window');
+
 export default function UncategorizedTransactions({ navigation }) {
     const [keyword, setKeyword] = useState('');
     const [category, setCategory] = useState('');
-    const [amount, setAmount] = useState(''); // New state for amount input
-    const [keywords, setKeywords] = useState([]);  // State for storing keywords
+    const [amount, setAmount] = useState(''); 
+    const [keywords, setKeywords] = useState([]);  
     const [categories, setCategories] = useState([]);
     const [transactions, setTransactions] = useState([]);
-    const [isPickerVisible, setPickerVisible] = useState(false);  // State to control Picker visibility
-    const [isLoading, setIsLoading] = useState(true);  // State for loading indicator
-    const [isKeywordModalVisible, setKeywordModalVisible] = useState(false); // State for keyword modal visibility
+    const [isPickerVisible, setPickerVisible] = useState(false);  
+    const [isLoading, setIsLoading] = useState(true);  
+    const [isKeywordModalVisible, setKeywordModalVisible] = useState(false); 
 
     // Fetch uncategorized transactions
     const fetchUncategorizedTransactions = async () => {
-        setIsLoading(true);  // Start loading indicator
+        setIsLoading(true); 
         try {
             const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/uncategorized-transactions');
             const data = await response.json();
@@ -25,11 +28,10 @@ export default function UncategorizedTransactions({ navigation }) {
         } catch (error) {
             console.error('Error fetching uncategorized transactions:', error);
         } finally {
-            setIsLoading(false);  // Stop loading indicator
+            setIsLoading(false);  
         }
     };
 
-    // Fetch categories from the server
     const fetchCategories = async () => {
         try {
             const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/categories');
@@ -40,26 +42,21 @@ export default function UncategorizedTransactions({ navigation }) {
         }
     };
 
-    // Fetch keywords from the server
-    // Fetch keywords from the server and skip the first row (header)
     const fetchKeywords = async () => {
         try {
             const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/keywords');
             const data = await response.json();
 
-            // Skip the first row, which is the header
             if (data.length > 0) {
-                const keywordsWithoutHeader = data.slice(1); // Slice to remove the first row
-                setKeywords(keywordsWithoutHeader);
+                setKeywords(data); // Include all rows, including the first one
             } else {
-                setKeywords([]); // Handle the case where no data is returned
+                setKeywords([]); 
             }
         } catch (error) {
             console.error('Error fetching keywords:', error);
         }
     };
 
-    // Delete a keyword from the server
     const deleteKeyword = async (keywordToDelete) => {
         try {
             const response = await fetch(`https://budgetapp-dc6bcd57eaee.herokuapp.com/delete-keyword`, {
@@ -72,7 +69,6 @@ export default function UncategorizedTransactions({ navigation }) {
 
             if (response.ok) {
                 alert('Keyword deleted successfully!');
-                // Remove the deleted keyword from the local state
                 setKeywords(prevKeywords => prevKeywords.filter(k => k.keyword !== keywordToDelete));
             } else {
                 const errorText = await response.text();
@@ -100,12 +96,12 @@ export default function UncategorizedTransactions({ navigation }) {
 
     useEffect(() => {
         fetchUncategorizedTransactions();
-        fetchCategories();  // Fetch categories when the component loads
+        fetchCategories();  
     }, []);
 
     useEffect(() => {
         if (isKeywordModalVisible) {
-            fetchKeywords();  // Fetch keywords when the modal opens
+            fetchKeywords();  
         }
     }, [isKeywordModalVisible]);
 
@@ -120,7 +116,7 @@ export default function UncategorizedTransactions({ navigation }) {
                     body: JSON.stringify({
                         keyword,
                         category,
-                        amount: amount || null // Include amount if provided 
+                        amount: amount || null 
                     }),
                 });
 
@@ -128,16 +124,16 @@ export default function UncategorizedTransactions({ navigation }) {
                     alert('Keyword, Category, and Amount saved successfully!');
                     setKeyword('');
                     setCategory('');
-                    setAmount(''); // Clear the amount input
+                    setAmount(''); 
 
                     setKeywords(prevKeywords => [...prevKeywords, { keyword, category, amount }]);
                     deleteMatchingTransactions(keyword);
                 } else {
-                    const errorText = await response.text(); // Capture and show the detailed error
+                    const errorText = await response.text(); 
                     alert(`Failed to save. Try again. Error: ${errorText}`);
                 }
             } catch (error) {
-                console.error('Error during saving:', error); // Log detailed error
+                console.error('Error during saving:', error); 
                 alert(`Error: ${error.message}`);
             }
         } else {
@@ -154,7 +150,6 @@ export default function UncategorizedTransactions({ navigation }) {
                 return keywordMatch && amountMatch;
             });
 
-        // Sort transactions by original index in descending order (from bottom to top)
         matchingTransactions.sort((a, b) => b.originalIndex - a.originalIndex);
 
         for (let i = 0; i < matchingTransactions.length; i++) {
@@ -171,7 +166,7 @@ export default function UncategorizedTransactions({ navigation }) {
                         prevTransactions.filter(t => t.id !== transaction.id)
                     );
                 } else {
-                    const errorText = await response.text(); // Get more details about the error
+                    const errorText = await response.text();
                     console.error(`Failed to delete transaction with ID ${transaction.id}. Error: ${errorText}`);
                 }
             } catch (error) {
@@ -180,32 +175,30 @@ export default function UncategorizedTransactions({ navigation }) {
         }
     };
 
-    // Render each transaction item
-    const renderTransaction = ({ item, index }) => {
-        const isHeader = index === 0;
-
-        return (
-            <View style={styles.transactionItem}>
-                <Text style={styles.transactionDetails}>
-                    {item.details}
-                </Text>
-                <Text style={styles.transactionAmount}>
-                    {isHeader ? item.amount : `$${item.amount}`}
-                </Text>
+    const renderKeywordItem = ({ item, index }) => (
+        <View style={styles.keywordRow}>
+            <View style={styles.keywordColumn}>
+                <ScrollView horizontal>
+                    <Text style={[styles.keywordText, index === 0 && styles.boldText]}>{item.keyword}</Text>
+                </ScrollView>
             </View>
-        );
-    };
-
-    // Render each keyword item
-    const renderKeywordItem = ({ item }) => (
-        <View style={styles.keywordItem}>
-            <Text>{item.keyword} - {item.category}</Text>
-            <TouchableOpacity onPress={() => deleteKeyword(item.keyword)}>
-                <MaterialIcons name="delete" size={24} color="red" />
-            </TouchableOpacity>
+            <View style={styles.categoryColumn}>
+                <ScrollView horizontal>
+                    <Text style={[styles.categoryText, index === 0 && styles.boldText]}>{item.category}</Text>
+                </ScrollView>
+            </View>
+            <View style={styles.iconColumn}>
+                {index === 0 ? ( // For the first row, make the trash icon invisible and unclickable
+                    <MaterialIcons name="delete" size={24} color="transparent" />
+                ) : (
+                    <TouchableOpacity onPress={() => deleteKeyword(item.keyword)}>
+                        <MaterialIcons name="delete" size={24} color="red" />
+                    </TouchableOpacity>
+                )}
+            </View>
         </View>
     );
-    
+
     return (
         <KeyboardAvoidingView
             style={styles.container}
@@ -219,7 +212,6 @@ export default function UncategorizedTransactions({ navigation }) {
             ) : (
                 <FlatList
                     data={transactions}
-                    renderItem={renderTransaction}
                     keyExtractor={item => item.id.toString()}
                     contentContainerStyle={styles.transactionList}
                 />
@@ -237,7 +229,7 @@ export default function UncategorizedTransactions({ navigation }) {
                     </Text>
                 </TouchableOpacity>
                 <TextInput
-                    style={styles.input} // Input field for amount
+                    style={styles.input} 
                     placeholder="Enter Amount (optional)"
                     value={amount}
                     onChangeText={setAmount}
@@ -272,17 +264,17 @@ export default function UncategorizedTransactions({ navigation }) {
                 onBackdropPress={() => setKeywordModalVisible(false)}
                 style={styles.modal}
             >
-                <View style={styles.keywordModal}>
-                    <Text style={styles.modalTitle}>Keywords and Categories</Text>
+                <View style={[styles.keywordModal, { maxHeight: screenHeight - 100 }]}>
                     <FlatList
                         data={keywords}
                         renderItem={renderKeywordItem}
-                        keyExtractor={(item, index) => `${item.keyword}-${index}`} // Ensure uniqueness by adding the index
-                        contentContainerStyle={[styles.transactionList, { paddingTop: 50 }]}
+                        keyExtractor={(item, index) => `${item.keyword}-${index}`}
                     />
+
                     <Button title="Close" onPress={() => setKeywordModalVisible(false)} />
                 </View>
             </Modal>
+
         </KeyboardAvoidingView>
     );
 }
@@ -299,23 +291,6 @@ const styles = StyleSheet.create({
     },
     transactionList: {
         flexGrow: 1,
-    },
-    transactionItem: {
-        padding: 10,
-        borderBottomColor: 'gray',
-        borderBottomWidth: 1,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    transactionDetails: {
-        flex: 1,
-        marginRight: 10,
-        flexWrap: 'wrap', // Allow the text to wrap if it's too long
-    },
-    transactionAmount: {
-        width: 70,
-        textAlign: 'left',
     },
     footerContainer: {
         flexDirection: 'column',
@@ -339,7 +314,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     modal: {
-        justifyContent: 'flex-end',
+        justifyContent: 'center',
         margin: 0,
     },
     pickerModal: {
@@ -351,13 +326,32 @@ const styles = StyleSheet.create({
         padding: 20,
         borderRadius: 10,
     },
-    modalTitle: {
-        fontSize: 18,
-        marginBottom: 10,
-    },
-    keywordItem: {
+    keywordRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 10,
-    }
+        alignItems: 'center',
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#ccc',
+    },
+    keywordColumn: {
+        width: '55%',  // Make the keyword column wider
+        marginRight: '5%',
+    },
+    categoryColumn: {
+        width: '30%',  // Make the category column narrower
+    },
+    iconColumn: {
+        width: '10%',
+        alignItems: 'center',
+    },
+    keywordText: {
+        fontSize: 14,
+    },
+    categoryText: {
+        fontSize: 14,
+    },
+    boldText: {
+        fontWeight: 'bold',
+    },
 });
