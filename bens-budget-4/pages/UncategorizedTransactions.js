@@ -179,22 +179,18 @@ export default function UncategorizedTransactions({ navigation }) {
         <View style={styles.keywordRow}>
             <View style={styles.keywordColumn}>
                 <ScrollView horizontal>
-                    <Text style={[styles.keywordText, index === 0 && styles.boldText]}>{item.keyword}</Text>
+                    <Text style={styles.keywordText}>{item.keyword}</Text>
                 </ScrollView>
             </View>
             <View style={styles.categoryColumn}>
                 <ScrollView horizontal>
-                    <Text style={[styles.categoryText, index === 0 && styles.boldText]}>{item.category}</Text>
+                    <Text style={styles.categoryText}>{item.category}</Text>
                 </ScrollView>
             </View>
             <View style={styles.iconColumn}>
-                {index === 0 ? ( // For the first row, make the trash icon invisible and unclickable
-                    <MaterialIcons name="delete" size={24} color="transparent" />
-                ) : (
-                    <TouchableOpacity onPress={() => deleteKeyword(item.keyword)}>
-                        <MaterialIcons name="delete" size={24} color="red" />
-                    </TouchableOpacity>
-                )}
+                <TouchableOpacity onPress={() => deleteKeyword(item.keyword)}>
+                    <MaterialIcons name="delete" size={24} color="red" />
+                </TouchableOpacity>
             </View>
         </View>
     );
@@ -265,8 +261,22 @@ export default function UncategorizedTransactions({ navigation }) {
                 style={styles.modal}
             >
                 <View style={[styles.keywordModal, { maxHeight: screenHeight - 100 }]}>
+                    {/* Fixed first row */}
+                    <View style={styles.keywordRow}>
+                        <View style={styles.keywordColumn}>
+                            <Text style={[styles.keywordText, styles.boldText]}>{keywords.length > 0 && keywords[0].keyword}</Text>
+                        </View>
+                        <View style={styles.categoryColumn}>
+                            <Text style={[styles.categoryText, styles.boldText]}>{keywords.length > 0 && keywords[0].category}</Text>
+                        </View>
+                        <View style={styles.iconColumn}>
+                            <MaterialIcons name="delete" size={24} color="transparent" />
+                        </View>
+                    </View>
+
+                    {/* Scrollable list */}
                     <FlatList
-                        data={keywords}
+                        data={keywords.slice(1)}  // Skip the first row
                         renderItem={renderKeywordItem}
                         keyExtractor={(item, index) => `${item.keyword}-${index}`}
                     />
