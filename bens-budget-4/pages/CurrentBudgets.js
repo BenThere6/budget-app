@@ -4,11 +4,11 @@ import { MaterialIcons } from '@expo/vector-icons'; // Import Material Icons
 
 export default function CurrentBudgets({ navigation }) {
   const [budgetData, setBudgetData] = useState({
-    food: { total: '', used: '', remaining: '' },
-    shopping: { total: '', used: '', remaining: '' },
-    gas: { total: '', used: '', remaining: '' },
-    other: { total: '', used: '', remaining: '' },
-    percentMonthPassed: '',
+    food: { total: 0, used: 0, remaining: 0 },
+    shopping: { total: 0, used: 0, remaining: 0 },
+    gas: { total: 0, used: 0, remaining: 0 },
+    other: { total: 0, used: 0, remaining: 0 },
+    percentMonthPassed: 0,
     fillupPrice: 0  // Add the fill-up price here
   });
   const [isLoading, setIsLoading] = useState(true);  // State for loading indicator
@@ -19,7 +19,17 @@ export default function CurrentBudgets({ navigation }) {
     try {
       const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/budget');
       const data = await response.json();
-      setBudgetData(data);
+      
+      // Ensure the values are properly parsed as numbers
+      const parsedData = {
+        ...data,
+        food: { ...data.food, remaining: Math.round(parseFloat(data.food.remaining)) },
+        shopping: { ...data.shopping, remaining: Math.round(parseFloat(data.shopping.remaining)) },
+        gas: { ...data.gas, remaining: Math.round(parseFloat(data.gas.remaining)) },
+        other: { ...data.other, remaining: Math.round(parseFloat(data.other.remaining)) }
+      };
+
+      setBudgetData(parsedData);
     } catch (error) {
       console.error('Error fetching budget data:', error);
     } finally {
@@ -28,8 +38,19 @@ export default function CurrentBudgets({ navigation }) {
   };
   
   const formatDollarAmount = (amount) => {
-    return `$${Math.round(amount)}`;
-  };  
+    const parsedAmount = parseFloat(amount);
+    return parsedAmount < 0 ? `-$${Math.abs(Math.round(parsedAmount))}` : `$${Math.round(parsedAmount)}`;
+  };
+
+  // Function to determine the text color based on the amount
+  const getAmountStyle = (amount) => {
+    return parseFloat(amount) <= 0 ? styles.amountNegative : styles.amountPositive;
+  };
+
+  // Function to determine the text color for gas based on the number of fillups
+  const getGasStyle = (fillups) => {
+    return parseFloat(fillups) < 1 ? styles.amountNegative : styles.amountPositive;
+  };
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -50,13 +71,14 @@ export default function CurrentBudgets({ navigation }) {
     const { total, used } = category;
     const allowedToUse = (budgetData.percentMonthPassed / 100) * total;
     const remaining = allowedToUse - used;
-    return remaining > 0 ? remaining.toFixed(2) : 0;
+    return remaining > 0 ? Math.round(remaining) : 0;
   };
 
   // Function to calculate how many fillups are left based on the remaining gas budget
   const calculateFillupsLeft = (remainingBudget) => {
     const { fillupPrice } = budgetData;
-    return (remainingBudget / fillupPrice).toFixed(2);  // Number of fill-ups left
+    const fillupsLeft = remainingBudget / fillupPrice;
+    return fillupsLeft.toFixed(2);  // Number of fill-ups left with 2 decimal places
   };
 
   return (
@@ -74,28 +96,28 @@ export default function CurrentBudgets({ navigation }) {
             />
           </View>
           <Text style={styles.text}>
-            Food: <Text style={styles.dollarText}>
+            Food: <Text style={getAmountStyle(toggleDailyBudget ? getDailyRemainingBudget(budgetData.food) : budgetData.food.remaining)}>
               {toggleDailyBudget 
                 ? formatDollarAmount(getDailyRemainingBudget(budgetData.food)) 
                 : formatDollarAmount(budgetData.food.remaining)}
             </Text>
           </Text>
           <Text style={styles.text}>
-            Shopping: <Text style={styles.dollarText}>
+            Shopping: <Text style={getAmountStyle(toggleDailyBudget ? getDailyRemainingBudget(budgetData.shopping) : budgetData.shopping.remaining)}>
               {toggleDailyBudget 
                 ? formatDollarAmount(getDailyRemainingBudget(budgetData.shopping)) 
                 : formatDollarAmount(budgetData.shopping.remaining)}
             </Text>
           </Text>
           <Text style={styles.text}>
-            Gas: <Text style={styles.dollarText}>
+            Gas: <Text style={getGasStyle(calculateFillupsLeft(toggleDailyBudget ? getDailyRemainingBudget(budgetData.gas) : budgetData.gas.remaining))}>
               {toggleDailyBudget 
-                ? calculateFillupsLeft(getDailyRemainingBudget(budgetData.gas)) 
-                : calculateFillupsLeft(budgetData.gas.remaining)} fillups
+                ? `${calculateFillupsLeft(getDailyRemainingBudget(budgetData.gas))} fillups` 
+                : `${calculateFillupsLeft(budgetData.gas.remaining)} fillups`}
             </Text>
           </Text>
           <Text style={styles.text}>
-            Other: <Text style={styles.dollarText}>
+            Other: <Text style={getAmountStyle(toggleDailyBudget ? getDailyRemainingBudget(budgetData.other) : budgetData.other.remaining)}>
               {toggleDailyBudget 
                 ? formatDollarAmount(getDailyRemainingBudget(budgetData.other)) 
                 : formatDollarAmount(budgetData.other.remaining)}
@@ -132,8 +154,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginRight: 10,
   },
-  dollarText: {
-    color: 'green',  // Display the dollar amount in green
+  amountPositive: {
+    color: 'green',  // Display the positive amount in green
+    fontWeight: 'bold',
+  },
+  amountNegative: {
+    color: 'red',  // Display the negative amount in red
     fontWeight: 'bold',
   },
 });
