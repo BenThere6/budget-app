@@ -48,6 +48,8 @@ const imapConfig = {
     tlsOptions: { rejectUnauthorized: false },
 };
 
+// All Functions
+
 // Function to get all keywords from the Keywords tab
 async function getKeywords() {
     const sheets = google.sheets({ version: 'v4', auth: client });
@@ -228,34 +230,6 @@ function parseTransactionDetails(html) {
     return transactions;
 }
 
-// Endpoint to get current keywords
-app.get('/keywords', async (req, res) => {
-    try {
-        const keywords = await getKeywords(); // Use the existing getKeywords function
-        res.status(200).json(keywords);
-    } catch (error) {
-        console.error('Error fetching keywords:', error);
-        res.status(500).json({ error: 'Failed to fetch keywords.' });
-    }
-});
-
-// Endpoint to add a transaction
-app.post('/add-transaction', async (req, res) => {
-    const { date, category, amount, details } = req.body;
-
-    if (!date || !category || !amount || !details) {
-        return res.status(400).json({ error: 'Date, category, amount, and details are required.' });
-    }
-
-    try {
-        await addTransaction(date, details, amount, category);
-        res.status(200).json({ message: 'Transaction added successfully.' });
-    } catch (error) {
-        console.error('Error adding transaction:', error);
-        res.status(500).json({ error: 'Failed to add transaction.' });
-    }
-});
-
 // Function to process emails and categorize transactions
 async function processEmails() {
     try {
@@ -326,34 +300,6 @@ async function getBudgetData() {
     }
 }
 
-// Endpoint to get budget data
-app.get('/budget', async (req, res) => {
-    const budgetData = await getBudgetData();
-    if (budgetData) {
-        res.json(budgetData);
-    } else {
-        res.status(500).json({ error: 'Failed to fetch budget data' });
-    }
-});
-
-// Endpoint to save Expo push token
-app.post('/api/token', async (req, res) => {
-    const { token } = req.body;
-
-    if (!token) {
-        return res.status(400).json({ error: 'Token is required.' });
-    }
-
-    // Here you would typically save the token to a database
-    // Since it's a practice app, we will just log it
-    console.log('Received Expo push token:', token);
-
-    // In a real application, you might also associate the token with a user ID
-    // For example, you could store it in a MongoDB collection or similar
-
-    res.status(200).json({ message: 'Token saved successfully.' });
-});
-
 // Function to get savings data
 async function getSavingsData() {
     const sheets = google.sheets({ version: 'v4', auth: client });
@@ -380,6 +326,192 @@ async function getSavingsData() {
         return null;
     }
 }
+
+// Function to send a push notification
+async function sendPushNotification(token, message) {
+    if (!Expo.isExpoPushToken(token)) {
+        console.error(`Push token ${token} is not a valid Expo push token`);
+        return;
+    }
+
+    const messages = [{
+        to: token,
+        sound: 'default',
+        body: message,
+        data: { withSome: 'data' },
+    }];
+
+    try {
+        const ticketChunk = await expo.sendPushNotificationsAsync(messages);
+        console.log(ticketChunk);
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+// Function to get categories from the Google Sheets
+async function getCategories() {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+    try {
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            range: 'Calculations!B128:DS128', // Adjust the range if necessary
+        });
+
+        // Flatten the array and remove any empty values
+        const categories = response.data.values[0].filter(category => category.trim() !== '');
+        return categories;
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        return [];
+    }
+}
+
+// Function to get uncategorized transactions from the Google Sheets
+async function getUncategorizedTransactions() {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+    try {
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            range: 'Uncategorized!A:D', // Adjust the range if necessary
+        });
+
+        // Check if the response contains any values
+        const rows = response.data.values;
+        if (!rows || rows.length === 0) {
+            console.log('No uncategorized transactions found.');
+            return []; // Return an empty array if there are no uncategorized transactions
+        }
+
+        // Check if the first row looks like headers
+        const headers = rows[0];
+        const isHeader = headers[0]?.toLowerCase() === "date" && headers[1]?.toLowerCase() === "details";
+
+        // Skip the first row if it's a header
+        const dataRows = isHeader ? rows.slice(1) : rows;
+
+        // Map the data to an array of objects
+        const transactions = dataRows.map((row, index) => ({
+            id: index + 1,
+            date: row[0] || '',
+            details: row[1] || '',
+            amount: row[2] || '',
+            categorized: row[3] === 'true',
+        }));
+
+        return transactions;
+    } catch (error) {
+        console.error('Error fetching uncategorized transactions:', error);
+        return [];
+    }
+}
+
+// Function to delete an uncategorized transaction by row number
+async function deleteUncategorizedTransaction(rowIndex) {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+
+    // Get the sheetId for the 'Uncategorized' sheet
+    const sheetId = await getSheetId('Uncategorized');
+    if (!sheetId) {
+        console.error('Failed to retrieve the sheet ID.');
+        return;
+    }
+
+    try {
+        await sheets.spreadsheets.batchUpdate({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            resource: {
+                requests: [
+                    {
+                        deleteDimension: {
+                            range: {
+                                sheetId: sheetId,
+                                dimension: 'ROWS',
+                                startIndex: rowIndex - 1, // Adjusted to match Google Sheets API 0-based indexing
+                                endIndex: rowIndex,
+                            },
+                        },
+                    },
+                ],
+            },
+        });
+        console.log(`Row ${rowIndex} deleted successfully.`);
+    } catch (error) {
+        console.error('Error deleting uncategorized transaction:', error);
+        throw error; // Rethrow error to handle it in the calling function
+    }
+}
+
+async function getSheetId(sheetName) {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+
+    try {
+        const response = await sheets.spreadsheets.get({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+        });
+
+        const sheet = response.data.sheets.find(sheet => sheet.properties.title === sheetName);
+        return sheet ? sheet.properties.sheetId : null;
+    } catch (error) {
+        console.error(`Error getting sheet ID for "${sheetName}":`, error);
+        return null;
+    }
+}
+
+// All Routes
+
+// Endpoint to get current keywords
+app.get('/keywords', async (req, res) => {
+    try {
+        const keywords = await getKeywords(); // Use the existing getKeywords function
+        res.status(200).json(keywords);
+    } catch (error) {
+        console.error('Error fetching keywords:', error);
+        res.status(500).json({ error: 'Failed to fetch keywords.' });
+    }
+});
+
+// Endpoint to add a transaction
+app.post('/add-transaction', async (req, res) => {
+    const { date, category, amount, details } = req.body;
+
+    if (!date || !category || !amount || !details) {
+        return res.status(400).json({ error: 'Date, category, amount, and details are required.' });
+    }
+
+    try {
+        await addTransaction(date, details, amount, category);
+        res.status(200).json({ message: 'Transaction added successfully.' });
+    } catch (error) {
+        console.error('Error adding transaction:', error);
+        res.status(500).json({ error: 'Failed to add transaction.' });
+    }
+});
+
+// Endpoint to get budget data
+app.get('/budget', async (req, res) => {
+    const budgetData = await getBudgetData();
+    if (budgetData) {
+        res.json(budgetData);
+    } else {
+        res.status(500).json({ error: 'Failed to fetch budget data' });
+    }
+});
+
+// Endpoint to save Expo push token
+app.post('/api/token', async (req, res) => {
+    const { token } = req.body;
+
+    if (!token) {
+        return res.status(400).json({ error: 'Token is required.' });
+    }
+
+    // Here you would typically save the token to a database
+    // Since it's a practice app, we will just log it
+    console.log('Received Expo push token:', token);
+
+    res.status(200).json({ message: 'Token saved successfully.' });
+});
 
 // Endpoint to get savings data
 app.get('/savings', async (req, res) => {
@@ -463,46 +595,6 @@ app.delete('/delete-keyword', async (req, res) => {
     }
 });
 
-// Function to send a push notification
-async function sendPushNotification(token, message) {
-    if (!Expo.isExpoPushToken(token)) {
-        console.error(`Push token ${token} is not a valid Expo push token`);
-        return;
-    }
-
-    const messages = [{
-        to: token,
-        sound: 'default',
-        body: message,
-        data: { withSome: 'data' },
-    }];
-
-    try {
-        const ticketChunk = await expo.sendPushNotificationsAsync(messages);
-        console.log(ticketChunk);
-    } catch (error) {
-        console.error(error);
-    }
-}
-
-// Function to get categories from the Google Sheets
-async function getCategories() {
-    const sheets = google.sheets({ version: 'v4', auth: client });
-    try {
-        const response = await sheets.spreadsheets.values.get({
-            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
-            range: 'Calculations!B128:DS128', // Adjust the range if necessary
-        });
-
-        // Flatten the array and remove any empty values
-        const categories = response.data.values[0].filter(category => category.trim() !== '');
-        return categories;
-    } catch (error) {
-        console.error('Error fetching categories:', error);
-        return [];
-    }
-}
-
 // Endpoint to get categories
 app.get('/categories', async (req, res) => {
     const categories = await getCategories();
@@ -513,44 +605,35 @@ app.get('/categories', async (req, res) => {
     }
 });
 
-// Function to get uncategorized transactions from the Google Sheets
-async function getUncategorizedTransactions() {
-    const sheets = google.sheets({ version: 'v4', auth: client });
-    try {
-        const response = await sheets.spreadsheets.values.get({
-            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
-            range: 'Uncategorized!A:D', // Adjust the range if necessary
-        });
+// Endpoint to categorize an uncategorized transaction
+app.post('/categorize-transaction', async (req, res) => {
+    const { id, category } = req.body;
 
-        // Check if the response contains any values
-        const rows = response.data.values;
-        if (!rows || rows.length === 0) {
-            console.log('No uncategorized transactions found.');
-            return []; // Return an empty array if there are no uncategorized transactions
+    if (!id || !category) {
+        return res.status(400).json({ error: 'Transaction ID and category are required.' });
+    }
+
+    try {
+        // Fetch the uncategorized transaction by its ID
+        const transactions = await getUncategorizedTransactions();
+        const transactionToCategorize = transactions.find(t => t.id === id);
+
+        if (!transactionToCategorize) {
+            return res.status(404).json({ error: 'Transaction not found.' });
         }
 
-        // Check if the first row looks like headers
-        const headers = rows[0];
-        const isHeader = headers[0]?.toLowerCase() === "date" && headers[1]?.toLowerCase() === "details";
+        // Move the transaction to the categorized 'Transactions' tab
+        await addTransaction(transactionToCategorize.date, transactionToCategorize.details, transactionToCategorize.amount, category);
 
-        // Skip the first row if it's a header
-        const dataRows = isHeader ? rows.slice(1) : rows;
+        // Delete the transaction from the 'Uncategorized' tab
+        await deleteUncategorizedTransaction(transactionToCategorize.id);
 
-        // Map the data to an array of objects
-        const transactions = dataRows.map((row, index) => ({
-            id: index + 1,
-            date: row[0] || '',
-            details: row[1] || '',
-            amount: row[2] || '',
-            categorized: row[3] === 'true',
-        }));
-
-        return transactions;
+        return res.status(200).json({ message: 'Transaction moved to Transactions tab and deleted from Uncategorized.' });
     } catch (error) {
-        console.error('Error fetching uncategorized transactions:', error);
-        return [];
+        console.error('Error categorizing transaction:', error);
+        return res.status(500).json({ error: 'Failed to categorize transaction.' });
     }
-}
+});
 
 // Endpoint to get uncategorized transactions
 app.get('/uncategorized-transactions', async (req, res) => {
@@ -562,58 +645,7 @@ app.get('/uncategorized-transactions', async (req, res) => {
     }
 });
 
-async function getSheetId(sheetName) {
-    const sheets = google.sheets({ version: 'v4', auth: client });
-
-    try {
-        const response = await sheets.spreadsheets.get({
-            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
-        });
-
-        const sheet = response.data.sheets.find(sheet => sheet.properties.title === sheetName);
-        return sheet ? sheet.properties.sheetId : null;
-    } catch (error) {
-        console.error(`Error getting sheet ID for "${sheetName}":`, error);
-        return null;
-    }
-}
-
-// Function to delete an uncategorized transaction by row number
-async function deleteUncategorizedTransaction(rowIndex) {
-    const sheets = google.sheets({ version: 'v4', auth: client });
-
-    // Get the sheetId for the 'Uncategorized' sheet
-    const sheetId = await getSheetId('Uncategorized');
-    if (!sheetId) {
-        console.error('Failed to retrieve the sheet ID.');
-        return;
-    }
-
-    try {
-        await sheets.spreadsheets.batchUpdate({
-            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
-            resource: {
-                requests: [
-                    {
-                        deleteDimension: {
-                            range: {
-                                sheetId: sheetId,
-                                dimension: 'ROWS',
-                                startIndex: rowIndex - 1, // Adjusted to match Google Sheets API 0-based indexing
-                                endIndex: rowIndex,
-                            },
-                        },
-                    },
-                ],
-            },
-        });
-        console.log(`Row ${rowIndex} deleted successfully.`);
-    } catch (error) {
-        console.error('Error deleting uncategorized transaction:', error);
-        throw error; // Rethrow error to handle it in the calling function
-    }
-}
-
+// Endpoint to delete uncategorized transactions
 app.delete('/uncategorized-transactions/:rowIndex', async (req, res) => {
     const { rowIndex } = req.params;
 

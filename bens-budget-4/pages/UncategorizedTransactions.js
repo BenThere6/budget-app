@@ -17,6 +17,9 @@ export default function UncategorizedTransactions({ navigation }) {
     const [isPickerVisible, setPickerVisible] = useState(false);  
     const [isLoading, setIsLoading] = useState(true);  
     const [isKeywordModalVisible, setKeywordModalVisible] = useState(false); 
+    const [isTransactionModalVisible, setTransactionModalVisible] = useState(false); // For transaction modal
+    const [selectedTransaction, setSelectedTransaction] = useState(null); // Selected transaction for categorization
+    const [selectedCategory, setSelectedCategory] = useState(''); // Category selected in modal
 
     // Fetch uncategorized transactions
     const fetchUncategorizedTransactions = async () => {
@@ -175,23 +178,75 @@ export default function UncategorizedTransactions({ navigation }) {
         }
     };
 
+    // Handle selecting a transaction to categorize
+    const handleTransactionTap = (transaction) => {
+        setSelectedTransaction(transaction);
+        setTransactionModalVisible(true);
+    };
+
+    const handleCategorizeTransaction = async () => {
+        if (!selectedCategory) {
+            alert('Please select a category.');
+            return;
+        }
+
+        // Logic to categorize the transaction goes here
+        try {
+            const response = await fetch(`https://budgetapp-dc6bcd57eaee.herokuapp.com/categorize-transaction`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: selectedTransaction.id,
+                    category: selectedCategory
+                }),
+            });
+
+            if (response.ok) {
+                alert('Transaction categorized successfully!');
+                setTransactionModalVisible(false); 
+                setSelectedTransaction(null);
+                setSelectedCategory('');
+                fetchUncategorizedTransactions(); // Refresh the list
+            } else {
+                const errorText = await response.text();
+                alert(`Failed to categorize transaction. Error: ${errorText}`);
+            }
+        } catch (error) {
+            console.error('Error categorizing transaction:', error);
+        }
+    };
+
     // Render each transaction item
     const renderTransaction = ({ item, index }) => {
         const isHeader = index === -1; // -1 to remove this logic. Not needed.
 
+        // Do not make header clickable
+        if (isHeader) {
+            return (
+                <View style={styles.transactionRow}>
+                    <Text style={[styles.transactionDetails, styles.boldText]}>
+                        {item.details}
+                    </Text>
+                    <Text style={[styles.transactionAmount, styles.boldText, styles.blackText]}>
+                        {item.amount}
+                    </Text>
+                </View>
+            );
+        }
+
         return (
-            <View style={styles.transactionRow}>
-                <Text style={[styles.transactionDetails, isHeader && styles.boldText]}>
-                    {item.details}
-                </Text>
-                <Text style={[styles.transactionAmount, isHeader && styles.boldText, isHeader ? styles.blackText : styles.greenText]}>
-                    {isHeader ? item.amount : `$${item.amount}`}
-                </Text>
-            </View>
+            <TouchableOpacity onPress={() => handleTransactionTap(item)}>
+                <View style={styles.transactionRow}>
+                    <Text style={styles.transactionDetails}>{item.details}</Text>
+                    <Text style={styles.transactionAmount}>${item.amount}</Text>
+                </View>
+            </TouchableOpacity>
         );
     };
 
-    const renderKeywordItem = ({ item, index }) => (
+    const renderKeywordItem = ({ item }) => (
         <View style={styles.keywordRow}>
             <View style={styles.keywordColumn}>
                 <ScrollView horizontal>
@@ -284,6 +339,37 @@ export default function UncategorizedTransactions({ navigation }) {
                         ))}
                     </Picker>
                     <Button title="Done" onPress={() => setPickerVisible(false)} />
+                </View>
+            </Modal>
+
+            {/* Modal for categorizing a transaction */}
+            <Modal
+                isVisible={isTransactionModalVisible}
+                onBackdropPress={() => setTransactionModalVisible(false)}
+                style={styles.modal}
+            >
+                <View style={styles.modalContent}>
+                    {selectedTransaction && (
+                        <>
+                            <Text style={styles.modalTitle}>Categorize Transaction</Text>
+                            <Text style={styles.modalDetail}>Details: {selectedTransaction.details}</Text>
+                            <Text style={styles.modalDetail}>Amount: ${selectedTransaction.amount}</Text>
+
+                            <Picker
+                                selectedValue={selectedCategory}
+                                onValueChange={(itemValue) => setSelectedCategory(itemValue)}
+                                style={styles.picker}
+                            >
+                                <Picker.Item label="Select a Category" value="" />
+                                {categories.map((cat, index) => (
+                                    <Picker.Item key={index} label={cat} value={cat} />
+                                ))}
+                            </Picker>
+
+                            <Button title="Categorize" onPress={handleCategorizeTransaction} />
+                            <Button title="Close" onPress={() => setTransactionModalVisible(false)} />
+                        </>
+                    )}
                 </View>
             </Modal>
 
@@ -412,6 +498,20 @@ const styles = StyleSheet.create({
     transactionAmount: {
         fontSize: 16,
         color: 'green',
+    },
+    modalContent: {
+        backgroundColor: 'white',
+        padding: 20,
+        borderRadius: 10,
+    },
+    modalTitle: {
+        fontWeight: 'bold',
+        fontSize: 18,
+        marginBottom: 15,
+    },
+    modalDetail: {
+        fontSize: 16,
+        marginBottom: 10,
     },
     blackText: {
         color: 'black',
