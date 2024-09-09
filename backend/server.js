@@ -547,6 +547,7 @@ app.post('/add-transaction', async (req, res) => {
 // Endpoint to get budget data
 app.get('/budget', async (req, res) => {
     const budgetData = await getBudgetData();
+    console.log(budgetData);
     if (budgetData) {
         res.json(budgetData);
     } else {

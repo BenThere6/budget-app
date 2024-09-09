@@ -16,7 +16,7 @@ export default function CurrentBudgets({ navigation }) {
   const fetchBudgetData = async () => {
     setIsLoading(true);  // Start loading indicator
     try {
-      const response = await fetch('https://your-backend-url/budget/');
+      const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/budget/');
       const data = await response.json();
       setBudgetData(data);
     } catch (error) {
