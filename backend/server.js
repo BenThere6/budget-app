@@ -280,24 +280,80 @@ async function processEmails() {
     }
 }
 
-// Function to get budget data
+// Function to get budget data from the Minutia tab
 async function getBudgetData() {
     const sheets = google.sheets({ version: 'v4', auth: client });
     try {
         const response = await sheets.spreadsheets.values.batchGet({
-            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
-            ranges: ['Dashboard!C19', 'Dashboard!E19', 'Dashboard!G19', 'Dashboard!C23'],
+            spreadsheetId: 'YOUR_SPREADSHEET_ID',
+            ranges: [
+                'Minutia!A2:F12',  // Fetches the Goals columns: Total, Food, Shopping, Gas, Minutia Other
+                'Minutia!H2:N12'   // Fetches the Sums columns: Total, Food, Shopping, Gas, Minutia Other
+            ],
         });
+
+        // Parsing data
+        const goalsData = response.data.valueRanges[0].values;
+        const sumsData = response.data.valueRanges[1].values;
+
+        // Assuming you want to use the latest month's data
+        const lastRowGoals = goalsData[goalsData.length - 1];
+        const lastRowSums = sumsData[sumsData.length - 1];
+
+        // Percent of the month passed is calculated from the Sums tab
+        const percentMonthPassed = getPercentMonthPassed(lastRowSums[0]);
+
+        // Extract budget values
+        const foodBudget = parseFloat(lastRowGoals[2]);
+        const shoppingBudget = parseFloat(lastRowGoals[3]);
+        const gasBudget = parseFloat(lastRowGoals[4]);
+        const otherBudget = parseFloat(lastRowGoals[5]);
+
+        // Extract sums (amounts used so far)
+        const foodUsed = parseFloat(lastRowSums[3]);
+        const shoppingUsed = parseFloat(lastRowSums[4]);
+        const gasUsed = parseFloat(lastRowSums[5]);
+        const otherUsed = parseFloat(lastRowSums[6]);
+
         return {
-            food: response.data.valueRanges[0].values[0][0],
-            shopping: response.data.valueRanges[1].values[0][0],
-            gas: response.data.valueRanges[2].values[0][0],
-            other: response.data.valueRanges[3].values[0][0],
+            percentMonthPassed,
+            food: {
+                total: foodBudget,
+                used: foodUsed,
+                remaining: foodBudget - foodUsed
+            },
+            shopping: {
+                total: shoppingBudget,
+                used: shoppingUsed,
+                remaining: shoppingBudget - shoppingUsed
+            },
+            gas: {
+                total: gasBudget,
+                used: gasUsed,
+                remaining: gasBudget - gasUsed
+            },
+            other: {
+                total: otherBudget,
+                used: otherUsed,
+                remaining: otherBudget - otherUsed
+            },
         };
     } catch (error) {
         console.error('Error fetching budget data:', error);
         return null;
     }
+}
+
+// Helper function to calculate percent of the month passed
+function getPercentMonthPassed(date) {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);  // Last day of current month
+
+    const daysInMonth = (monthEnd - monthStart) / (1000 * 60 * 60 * 24);
+    const daysPassed = (now - monthStart) / (1000 * 60 * 60 * 24);
+
+    return (daysPassed / daysInMonth) * 100;
 }
 
 // Function to get savings data
