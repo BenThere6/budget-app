@@ -280,8 +280,13 @@ async function processEmails() {
     }
 }
 
-// Function to get budget data from the Minutia tab
-// Function to get budget data from the Minutia tab
+// Helper function to clean and convert strings to float
+function cleanAndParseFloat(value) {
+    // Remove dollar signs, commas, and any spaces, then parse the number
+    const cleanedValue = value.replace(/[$,]/g, '').trim();
+    return parseFloat(cleanedValue);
+}
+
 async function getBudgetData() {
     const sheets = google.sheets({ version: 'v4', auth: client });
     
@@ -325,17 +330,17 @@ async function getBudgetData() {
         // Percent of the month passed is calculated from the Sums tab
         const percentMonthPassed = getPercentMonthPassed(sumsData[0]);
 
-        // Extract budget values
-        const foodBudget = parseFloat(goalsData[2]);
-        const shoppingBudget = parseFloat(goalsData[3]);
-        const gasBudget = parseFloat(goalsData[4]);
-        const otherBudget = parseFloat(goalsData[5]);
+        // Clean and parse budget values
+        const foodBudget = cleanAndParseFloat(goalsData[2]);
+        const shoppingBudget = cleanAndParseFloat(goalsData[3]);
+        const gasBudget = cleanAndParseFloat(goalsData[4]);
+        const otherBudget = cleanAndParseFloat(goalsData[5]);
 
-        // Extract sums (amounts used so far)
-        const foodUsed = parseFloat(sumsData[3]);
-        const shoppingUsed = parseFloat(sumsData[4]);
-        const gasUsed = parseFloat(sumsData[5]);
-        const otherUsed = parseFloat(sumsData[6]);
+        // Clean and parse sums (amounts used so far)
+        const foodUsed = cleanAndParseFloat(sumsData[3]);
+        const shoppingUsed = cleanAndParseFloat(sumsData[4]);
+        const gasUsed = cleanAndParseFloat(sumsData[5]);
+        const otherUsed = cleanAndParseFloat(sumsData[6]);
 
         return {
             percentMonthPassed,
