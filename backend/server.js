@@ -310,8 +310,8 @@ async function getBudgetData() {
         const lastRowSums = sumsData[sumsData.length - 1];
 
         // Log last rows fetched
-        console.log("Last row for goals:", lastRowGoals);
-        console.log("Last row for sums:", lastRowSums);
+        // console.log("Last row for goals:", lastRowGoals);
+        // console.log("Last row for sums:", lastRowSums);
 
         // Percent of the month passed is calculated from the Sums tab
         const percentMonthPassed = getPercentMonthPassed(lastRowSums[0]);
