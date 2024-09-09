@@ -285,7 +285,7 @@ async function getBudgetData() {
     const sheets = google.sheets({ version: 'v4', auth: client });
     try {
         const response = await sheets.spreadsheets.values.batchGet({
-            spreadsheetId: 'YOUR_SPREADSHEET_ID',
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
             ranges: [
                 'Minutia!A2:F12',  // Fetches the Goals columns: Total, Food, Shopping, Gas, Minutia Other
                 'Minutia!H2:N12'   // Fetches the Sums columns: Total, Food, Shopping, Gas, Minutia Other
