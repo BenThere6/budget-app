@@ -48,6 +48,11 @@ export default function CurrentBudgets({ navigation }) {
     return remaining > 0 ? remaining.toFixed(2) : 0;
   };
 
+  // Function to round to nearest dollar and format as a string with a dollar sign
+  const formatDollarAmount = (amount) => {
+    return `$${Math.round(amount)}`; // Rounds to nearest dollar
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Current Budgets</Text>
@@ -63,16 +68,32 @@ export default function CurrentBudgets({ navigation }) {
             />
           </View>
           <Text style={styles.text}>
-            Food: {toggleDailyBudget ? getDailyRemainingBudget(budgetData.food) : budgetData.food.remaining}
+            Food: <Text style={styles.dollarText}>
+              {toggleDailyBudget 
+                ? formatDollarAmount(getDailyRemainingBudget(budgetData.food)) 
+                : formatDollarAmount(budgetData.food.remaining)}
+            </Text>
           </Text>
           <Text style={styles.text}>
-            Shopping: {toggleDailyBudget ? getDailyRemainingBudget(budgetData.shopping) : budgetData.shopping.remaining}
+            Shopping: <Text style={styles.dollarText}>
+              {toggleDailyBudget 
+                ? formatDollarAmount(getDailyRemainingBudget(budgetData.shopping)) 
+                : formatDollarAmount(budgetData.shopping.remaining)}
+            </Text>
           </Text>
           <Text style={styles.text}>
-            Gas: {toggleDailyBudget ? getDailyRemainingBudget(budgetData.gas) : budgetData.gas.remaining}
+            Gas: <Text style={styles.dollarText}>
+              {toggleDailyBudget 
+                ? formatDollarAmount(getDailyRemainingBudget(budgetData.gas)) 
+                : formatDollarAmount(budgetData.gas.remaining)}
+            </Text>
           </Text>
           <Text style={styles.text}>
-            Other: {toggleDailyBudget ? getDailyRemainingBudget(budgetData.other) : budgetData.other.remaining}
+            Other: <Text style={styles.dollarText}>
+              {toggleDailyBudget 
+                ? formatDollarAmount(getDailyRemainingBudget(budgetData.other)) 
+                : formatDollarAmount(budgetData.other.remaining)}
+            </Text>
           </Text>
         </>
       )}
@@ -104,5 +125,9 @@ const styles = StyleSheet.create({
   toggleLabel: {
     fontSize: 16,
     marginRight: 10,
+  },
+  dollarText: {
+    color: 'green',  // Display the dollar amount in green
+    fontWeight: 'bold',
   },
 });
