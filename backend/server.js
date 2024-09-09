@@ -281,9 +281,11 @@ async function processEmails() {
 }
 
 // Function to get budget data from the Minutia tab
+// Function to get budget data from the Minutia tab
 async function getBudgetData() {
     const sheets = google.sheets({ version: 'v4', auth: client });
     try {
+        console.log("Fetching budget data from Google Sheets...");
         const response = await sheets.spreadsheets.values.batchGet({
             spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
             ranges: [
@@ -292,28 +294,44 @@ async function getBudgetData() {
             ],
         });
 
+        // Log raw data response
+        console.log("Raw data response from Google Sheets:", response.data.valueRanges);
+
         // Parsing data
         const goalsData = response.data.valueRanges[0].values;
         const sumsData = response.data.valueRanges[1].values;
+
+        // Log goals and sums data
+        console.log("Parsed goals data:", goalsData);
+        console.log("Parsed sums data:", sumsData);
 
         // Assuming you want to use the latest month's data
         const lastRowGoals = goalsData[goalsData.length - 1];
         const lastRowSums = sumsData[sumsData.length - 1];
 
+        // Log last rows fetched
+        console.log("Last row for goals:", lastRowGoals);
+        console.log("Last row for sums:", lastRowSums);
+
         // Percent of the month passed is calculated from the Sums tab
         const percentMonthPassed = getPercentMonthPassed(lastRowSums[0]);
+        console.log("Percent of the month passed:", percentMonthPassed);
 
-        // Extract budget values
+        // Extract budget values and add logs to check if values are parsed correctly
         const foodBudget = parseFloat(lastRowGoals[2]);
         const shoppingBudget = parseFloat(lastRowGoals[3]);
         const gasBudget = parseFloat(lastRowGoals[4]);
         const otherBudget = parseFloat(lastRowGoals[5]);
+
+        console.log("Parsed budget values:", { foodBudget, shoppingBudget, gasBudget, otherBudget });
 
         // Extract sums (amounts used so far)
         const foodUsed = parseFloat(lastRowSums[3]);
         const shoppingUsed = parseFloat(lastRowSums[4]);
         const gasUsed = parseFloat(lastRowSums[5]);
         const otherUsed = parseFloat(lastRowSums[6]);
+
+        console.log("Parsed usage values:", { foodUsed, shoppingUsed, gasUsed, otherUsed });
 
         return {
             percentMonthPassed,
