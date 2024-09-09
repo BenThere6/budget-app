@@ -253,8 +253,30 @@ async function processEmails() {
 
         for (const transaction of transactions) {
             let matched = false;
+
+            // Convert transaction details to lowercase for case-insensitive matching
+            const lowerCaseDetails = transaction.details.toLowerCase();
+
+            // Special case for Maverik or Chevron transactions (case-insensitive)
+            if (lowerCaseDetails.includes('maverik') || lowerCaseDetails.includes('chevron')) {
+                const transactionAmount = parseFloat(transaction.amount);
+                let category;
+
+                if (transactionAmount < 15) {
+                    category = 'food';
+                } else {
+                    category = 'gas';
+                }
+
+                await addTransaction(transaction.date, transaction.details, transaction.amount, category);
+                console.log(`Categorized Maverik or Chevron transaction: ${transaction.details} as ${category}`);
+                matched = true;
+                continue; // Skip further processing for this transaction
+            }
+
+            // Regular keyword-based matching
             for (const { keyword, category, amount } of keywords) {
-                const keywordMatches = transaction.details.includes(keyword);
+                const keywordMatches = lowerCaseDetails.includes(keyword.toLowerCase());
                 const amountMatches = amount === null || transaction.amount === amount;
 
                 // Check if both keyword and amount match
@@ -265,6 +287,7 @@ async function processEmails() {
                     break;
                 }
             }
+
             // If no match is found, add the transaction to the uncategorized list
             if (!matched) {
                 await addUncategorizedTransaction(transaction.date, transaction.details, transaction.amount);
