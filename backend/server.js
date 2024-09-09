@@ -306,9 +306,6 @@ async function getBudgetData() {
     // Calculate the row based on the current month and year
     let rowToFetch = baseRow + (currentYear - baseYear) * 12 + currentMonth;
 
-    // If current date is before January 2024, fetch the January 2024 row as default
-    if (rowToFetch < baseRow) rowToFetch = baseRow;
-
     // Now fetch the correct row
     const rangeGoals = `Minutia!A${rowToFetch}:F${rowToFetch}`;  // Fetches the Goals columns
     const rangeSums = `Minutia!H${rowToFetch}:N${rowToFetch}`;   // Fetches the Sums columns
@@ -321,22 +318,27 @@ async function getBudgetData() {
             ranges: [rangeGoals, rangeSums, rangeFillupPrice],
         });
 
-        // Parsing data
+        console.log('Full response:', JSON.stringify(response.data, null, 2)); // Log the full response
+
         const goalsData = response.data.valueRanges[0].values[0];  // Fetch the data from the first range
         const sumsData = response.data.valueRanges[1].values[0];   // Fetch the data from the second range
-        const fillupPrice = parseFloat(response.data.valueRanges[2].values[0]); // Fetch the fill-up price
-        console.log('response data:', JSON.stringify(response.data, null, 2));
+        let fillupPriceRaw = response.data.valueRanges[2].values[0][0];
 
-        // Percent of the month passed is calculated from the Sums tab
+        // Clean up the fill-up price by removing dollar signs and spaces
+        fillupPriceRaw = fillupPriceRaw.replace(/[$\s]/g, '');  // Remove dollar signs and spaces
+        const fillupPrice = parseFloat(fillupPriceRaw);  // Convert cleaned value to a float
+
+        if (isNaN(fillupPrice)) {
+            console.error("Invalid fill-up price:", fillupPriceRaw);
+            return null;
+        }
+
         const percentMonthPassed = getPercentMonthPassed(sumsData[0]);
-
-        // Clean and parse budget values
         const foodBudget = cleanAndParseFloat(goalsData[2]);
         const shoppingBudget = cleanAndParseFloat(goalsData[3]);
         const gasBudget = cleanAndParseFloat(goalsData[4]);
         const otherBudget = cleanAndParseFloat(goalsData[5]);
 
-        // Clean and parse sums (amounts used so far)
         const foodUsed = cleanAndParseFloat(sumsData[3]);
         const shoppingUsed = cleanAndParseFloat(sumsData[4]);
         const gasUsed = cleanAndParseFloat(sumsData[5]);
@@ -364,7 +366,7 @@ async function getBudgetData() {
                 used: otherUsed,
                 remaining: otherBudget - otherUsed
             },
-            fillupPrice, // Return the price per fill-up
+            fillupPrice, // Correctly parsed fill-up price
         };
     } catch (error) {
         console.error('Error fetching budget data:', error);
