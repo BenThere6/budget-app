@@ -9,7 +9,6 @@ import { MaterialIcons } from '@expo/vector-icons';
 import CurrentBudgets from './pages/CurrentBudgets';
 import CurrentSavings from './pages/CurrentSavings';
 import UncategorizedTransactions from './pages/UncategorizedTransactions';
-import * as Updates from 'expo-updates';
 
 // Set up Notification Handler
 Notifications.setNotificationHandler({
@@ -34,20 +33,6 @@ function CustomHeader({ title, onRefresh }) {
       </TouchableOpacity>
     ),
   };
-}
-
-checkForUpdates();
-
-async function checkForUpdates() {
-  try {
-    const update = await Updates.checkForUpdateAsync();
-    if (update.isAvailable) {
-      await Updates.fetchUpdateAsync();
-      await Updates.reloadAsync(); // This will restart the app to apply the update
-    }
-  } catch (e) {
-    console.error(e);
-  }
 }
 
 // Screens wrapped in Stack Navigators with custom headers

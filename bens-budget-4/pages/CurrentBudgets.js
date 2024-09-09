@@ -8,10 +8,11 @@ export default function CurrentBudgets({ navigation }) {
     shopping: { total: '', used: '', remaining: '' },
     gas: { total: '', used: '', remaining: '' },
     other: { total: '', used: '', remaining: '' },
-    percentMonthPassed: ''
+    percentMonthPassed: '',
+    fillupPrice: 0  // Add the fill-up price here
   });
   const [isLoading, setIsLoading] = useState(true);  // State for loading indicator
-  const [toggleDailyBudget, setToggleDailyBudget] = useState(false);  // State for toggle
+  const [toggleDailyBudget, setToggleDailyBudget] = useState(true);  // Default the toggle to true
 
   const fetchBudgetData = async () => {
     setIsLoading(true);  // Start loading indicator
@@ -48,9 +49,10 @@ export default function CurrentBudgets({ navigation }) {
     return remaining > 0 ? remaining.toFixed(2) : 0;
   };
 
-  // Function to round to nearest dollar and format as a string with a dollar sign
-  const formatDollarAmount = (amount) => {
-    return `$${Math.round(amount)}`; // Rounds to nearest dollar
+  // Function to calculate how many fillups are left based on the remaining gas budget
+  const calculateFillupsLeft = (remainingBudget) => {
+    const { fillupPrice } = budgetData;
+    return (remainingBudget / fillupPrice).toFixed(2);  // Number of fill-ups left
   };
 
   return (
@@ -84,8 +86,8 @@ export default function CurrentBudgets({ navigation }) {
           <Text style={styles.text}>
             Gas: <Text style={styles.dollarText}>
               {toggleDailyBudget 
-                ? formatDollarAmount(getDailyRemainingBudget(budgetData.gas)) 
-                : formatDollarAmount(budgetData.gas.remaining)}
+                ? calculateFillupsLeft(getDailyRemainingBudget(budgetData.gas)) 
+                : calculateFillupsLeft(budgetData.gas.remaining)} fillups
             </Text>
           </Text>
           <Text style={styles.text}>
