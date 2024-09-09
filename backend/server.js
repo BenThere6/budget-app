@@ -325,7 +325,7 @@ async function getBudgetData() {
         const goalsData = response.data.valueRanges[0].values[0];  // Fetch the data from the first range
         const sumsData = response.data.valueRanges[1].values[0];   // Fetch the data from the second range
         const fillupPrice = parseFloat(response.data.valueRanges[2].values[0]); // Fetch the fill-up price
-        console.log('response data' + response.data)
+        console.log('response data' + response.data.valueRanges)
 
         // Percent of the month passed is calculated from the Sums tab
         const percentMonthPassed = getPercentMonthPassed(sumsData[0]);
