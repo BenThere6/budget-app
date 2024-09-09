@@ -26,6 +26,10 @@ export default function CurrentBudgets({ navigation }) {
       setIsLoading(false);  // Stop loading indicator
     }
   };
+  
+  const formatDollarAmount = (amount) => {
+    return `$${Math.round(amount)}`;
+  };  
 
   useLayoutEffect(() => {
     navigation.setOptions({

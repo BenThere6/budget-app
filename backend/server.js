@@ -50,6 +50,10 @@ const imapConfig = {
 
 // All Functions
 
+const formatDollarAmount = (amount) => {
+    return `$${Math.round(amount)}`;
+};
+
 // Function to get all keywords from the Keywords tab
 async function getKeywords() {
     const sheets = google.sheets({ version: 'v4', auth: client });
@@ -289,84 +293,85 @@ function cleanAndParseFloat(value) {
 
 async function getBudgetData() {
     const sheets = google.sheets({ version: 'v4', auth: client });
-  
+
     // Get the current year and month
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth(); // January is 0, so September is 8
-  
+
     // Calculate the base row: January 2024 is row 3, February is row 4, etc.
     const baseYear = 2024;
     const baseRow = 3; // January 2024 starts at row 3
-  
+
     // Calculate the row based on the current month and year
     let rowToFetch = baseRow + (currentYear - baseYear) * 12 + currentMonth;
-  
+
     // If current date is before January 2024, fetch the January 2024 row as default
     if (rowToFetch < baseRow) rowToFetch = baseRow;
-  
+
     // Now fetch the correct row
     const rangeGoals = `Minutia!A${rowToFetch}:F${rowToFetch}`;  // Fetches the Goals columns
     const rangeSums = `Minutia!H${rowToFetch}:N${rowToFetch}`;   // Fetches the Sums columns
     const rangeFillupPrice = 'Calculations!B13'; // Fetch price per fill-up
-  
+    console.log('range fillup price: ' + rangeFillupPrice)
+
     try {
-      console.log("Fetching budget data from Google Sheets...");
-      const response = await sheets.spreadsheets.values.batchGet({
-        spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
-        ranges: [rangeGoals, rangeSums, rangeFillupPrice],
-      });
-  
-      // Parsing data
-      const goalsData = response.data.valueRanges[0].values[0];  // Fetch the data from the first range
-      const sumsData = response.data.valueRanges[1].values[0];   // Fetch the data from the second range
-      const fillupPrice = parseFloat(response.data.valueRanges[2].values[0][0]); // Fetch the fill-up price
-  
-      // Percent of the month passed is calculated from the Sums tab
-      const percentMonthPassed = getPercentMonthPassed(sumsData[0]);
-  
-      // Clean and parse budget values
-      const foodBudget = cleanAndParseFloat(goalsData[2]);
-      const shoppingBudget = cleanAndParseFloat(goalsData[3]);
-      const gasBudget = cleanAndParseFloat(goalsData[4]);
-      const otherBudget = cleanAndParseFloat(goalsData[5]);
-  
-      // Clean and parse sums (amounts used so far)
-      const foodUsed = cleanAndParseFloat(sumsData[3]);
-      const shoppingUsed = cleanAndParseFloat(sumsData[4]);
-      const gasUsed = cleanAndParseFloat(sumsData[5]);
-      const otherUsed = cleanAndParseFloat(sumsData[6]);
-  
-      return {
-        percentMonthPassed,
-        food: {
-          total: foodBudget,
-          used: foodUsed,
-          remaining: foodBudget - foodUsed
-        },
-        shopping: {
-          total: shoppingBudget,
-          used: shoppingUsed,
-          remaining: shoppingBudget - shoppingUsed
-        },
-        gas: {
-          total: gasBudget,
-          used: gasUsed,
-          remaining: gasBudget - gasUsed
-        },
-        other: {
-          total: otherBudget,
-          used: otherUsed,
-          remaining: otherBudget - otherUsed
-        },
-        fillupPrice, // Return the price per fill-up
-      };
+        console.log("Fetching budget data from Google Sheets...");
+        const response = await sheets.spreadsheets.values.batchGet({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            ranges: [rangeGoals, rangeSums, rangeFillupPrice],
+        });
+
+        // Parsing data
+        const goalsData = response.data.valueRanges[0].values[0];  // Fetch the data from the first range
+        const sumsData = response.data.valueRanges[1].values[0];   // Fetch the data from the second range
+        const fillupPrice = parseFloat(response.data.valueRanges[2].values[0][0]); // Fetch the fill-up price
+
+        // Percent of the month passed is calculated from the Sums tab
+        const percentMonthPassed = getPercentMonthPassed(sumsData[0]);
+
+        // Clean and parse budget values
+        const foodBudget = cleanAndParseFloat(goalsData[2]);
+        const shoppingBudget = cleanAndParseFloat(goalsData[3]);
+        const gasBudget = cleanAndParseFloat(goalsData[4]);
+        const otherBudget = cleanAndParseFloat(goalsData[5]);
+
+        // Clean and parse sums (amounts used so far)
+        const foodUsed = cleanAndParseFloat(sumsData[3]);
+        const shoppingUsed = cleanAndParseFloat(sumsData[4]);
+        const gasUsed = cleanAndParseFloat(sumsData[5]);
+        const otherUsed = cleanAndParseFloat(sumsData[6]);
+
+        return {
+            percentMonthPassed,
+            food: {
+                total: foodBudget,
+                used: foodUsed,
+                remaining: foodBudget - foodUsed
+            },
+            shopping: {
+                total: shoppingBudget,
+                used: shoppingUsed,
+                remaining: shoppingBudget - shoppingUsed
+            },
+            gas: {
+                total: gasBudget,
+                used: gasUsed,
+                remaining: gasBudget - gasUsed
+            },
+            other: {
+                total: otherBudget,
+                used: otherUsed,
+                remaining: otherBudget - otherUsed
+            },
+            fillupPrice, // Return the price per fill-up
+        };
     } catch (error) {
-      console.error('Error fetching budget data:', error);
-      return null;
+        console.error('Error fetching budget data:', error);
+        return null;
     }
-  }
-  
+}
+
 // Helper function to calculate percent of the month passed
 function getPercentMonthPassed(date) {
     const now = new Date();
