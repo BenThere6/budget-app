@@ -375,15 +375,66 @@ async function getBudgetData() {
     }
 }
 
-function getPercentMonthPassed() {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);  
+// Function to get savings data
+async function getSavingsData() {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+    try {
+        const response = await sheets.spreadsheets.values.batchGet({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            ranges: [
+                'Dashboard!C31', 'Dashboard!E31', 'Dashboard!G31',
+                'Dashboard!C34', 'Dashboard!E34', 'Dashboard!G34',
+                'Dashboard!C37'
+            ],
+        });
+        return {
+            emergency: response.data.valueRanges[0].values[0][0],
+            general: response.data.valueRanges[1].values[0][0],
+            future: response.data.valueRanges[2].values[0][0],
+            treatYoSelf: response.data.valueRanges[3].values[0][0],
+            vehicle: response.data.valueRanges[4].values[0][0],
+            giftsDonations: response.data.valueRanges[5].values[0][0],
+            travelVacation: response.data.valueRanges[6].values[0][0],
+        };
+    } catch (error) {
+        console.error('Error fetching savings data:', error);
+        return null;
+    }
+}
 
-    const daysInMonth = (monthEnd - monthStart) / (1000 * 60 * 60 * 24);
-    const daysPassed = (now - monthStart) / (1000 * 60 * 60 * 24);
+// Function to get uncategorized transactions
+async function getUncategorizedTransactions() {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+    try {
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            range: 'Uncategorized!A:D',
+        });
 
-    return (daysPassed / daysInMonth) * 100;
+        const rows = response.data.values;
+        if (!rows || rows.length === 0) {
+            console.log('No uncategorized transactions found.');
+            return [];
+        }
+
+        const headers = rows[0];
+        const isHeader = headers[0]?.toLowerCase() === "date" && headers[1]?.toLowerCase() === "details";
+
+        const dataRows = isHeader ? rows.slice(1) : rows;
+
+        const transactions = dataRows.map((row, index) => ({
+            id: index + 1,
+            date: row[0] || '',
+            details: row[1] || '',
+            amount: row[2] || '',
+            categorized: row[3] === 'true',
+        }));
+
+        return transactions;
+    } catch (error) {
+        console.error('Error fetching uncategorized transactions:', error);
+        return [];
+    }
 }
 
 // New notification logic for categorized transactions
@@ -476,6 +527,26 @@ app.get('/budget', async (req, res) => {
         res.json(budgetData);
     } else {
         res.status(500).json({ error: 'Failed to fetch budget data' });
+    }
+});
+
+// Endpoint to get savings data
+app.get('/savings', async (req, res) => {
+    const savingsData = await getSavingsData();
+    if (savingsData) {
+        res.json(savingsData);
+    } else {
+        res.status(500).json({ error: 'Failed to fetch savings data' });
+    }
+});
+
+// Endpoint to get uncategorized transactions
+app.get('/uncategorized-transactions', async (req, res) => {
+    const transactions = await getUncategorizedTransactions();
+    if (transactions.length > 0) {
+        res.json(transactions);
+    } else {
+        res.status(500).json({ error: 'Failed to fetch uncategorized transactions' });
     }
 });
 
