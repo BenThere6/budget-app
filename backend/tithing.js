@@ -109,10 +109,17 @@ async function automateDonation() {
 
         // Check if the final confirmation page is loaded
         const confirmationUrl = 'https://donations.churchofjesuschrist.org/donations/#/donation/thankyou';
-        if (finalUrl === confirmationUrl) {
-            console.log('Donation confirmed! Reached thank you page.');
-        } else {
-            console.error('Donation confirmation not detected.');
+        const confirmationMessageSelector = 'h1.confirmation-message';  // Example selector for confirmation message
+
+        try {
+            // Wait for either the confirmation URL or a confirmation message
+            await page.waitForFunction(
+                `document.location.href === '${confirmationUrl}' || document.querySelector('${confirmationMessageSelector}')`,
+                { timeout: 15000 }
+            );
+            console.log('Donation confirmed! Reached thank you page or found confirmation message.');
+        } catch (confirmationError) {
+            console.error('Donation confirmation not detected. It may still have been submitted, please verify manually.');
         }
     } else {
         console.log('Did not reach step 3, cannot proceed with submission.');
