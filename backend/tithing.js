@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
 require('dotenv').config();
 
-async function automateDonation() {
+async function automateDonation(tithingAmount = '1') {
     const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
 
@@ -31,8 +31,8 @@ async function automateDonation() {
     }
 
     await page.waitForSelector('input[name="txt"]');
-    await page.type('input[name="txt"]', '1');
-    console.log('Entered tithing amount.');
+    await page.type('input[name="txt"]', tithingAmount);  // Use the provided tithing amount
+    console.log(`Entered tithing amount: ${tithingAmount}`);
 
     try {
         await page.click('a[data-qa="nextStepButton"]');
@@ -129,8 +129,16 @@ async function automateDonation() {
     console.log('Donation process completed and browser closed.');
 }
 
-automateDonation().then(() => {
-    console.log('Automation finished');
-}).catch(err => {
-    console.error('Error during the automation:', err);
-});
+// Export the function for use in another file
+module.exports = { automateDonation };
+
+// Run the script if it's executed directly (e.g., via "node tithing.js")
+if (require.main === module) {
+    // Default tithing amount is "1" if no amount is provided via command line arguments
+    const tithingAmount = process.argv[2] || '1';
+    automateDonation(tithingAmount).then(() => {
+        console.log('Automation finished');
+    }).catch(err => {
+        console.error('Error during the automation:', err);
+    });
+}
