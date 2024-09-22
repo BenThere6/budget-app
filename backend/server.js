@@ -437,6 +437,23 @@ async function getUncategorizedTransactions() {
     }
 }
 
+// Function to get categories from the Google Sheets
+async function getCategories() {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+    try {
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            range: 'Calculations!B128:DS128', // Adjust the range if necessary
+        });
+
+        const categories = response.data.values[0].filter(category => category.trim() !== '');
+        return categories;
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        return [];
+    }
+}
+
 // New notification logic for categorized transactions
 async function notifyCategoryTransaction(category, amount) {
     const token = process.env.PUSH_TOKEN; 
@@ -547,6 +564,16 @@ app.get('/uncategorized-transactions', async (req, res) => {
         res.json(transactions);
     } else {
         res.status(500).json({ error: 'Failed to fetch uncategorized transactions' });
+    }
+});
+
+// Endpoint to get categories
+app.get('/categories', async (req, res) => {
+    const categories = await getCategories();
+    if (categories.length > 0) {
+        res.json(categories);
+    } else {
+        res.status(500).json({ error: 'Failed to fetch categories' });
     }
 });
 
