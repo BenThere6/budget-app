@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 require('dotenv').config();
 
 async function automateDonation() {
-    const browser = await puppeteer.launch({ headless: false });
+    const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
 
     console.log("Browser launched...");
