@@ -19,10 +19,10 @@ async function automateDonation() {
         await page.goto('https://donations.churchofjesuschrist.org/donations/#/donation/step1', { waitUntil: 'networkidle2' });
     } else {
         console.log('User is not logged in, proceeding with login process.');
-        await page.type('#input28', 'benjaminbirdsall');
+        await page.type('#input28', process.env.CHURCH_USERNAME);
         await page.click('input.button-primary[type="submit"]');
         await page.waitForSelector('#input53');
-        const password = process.env.CHURCH_PASSWORD || 'default_password_here';
+        const password = process.env.CHURCH_PASSWORD;
         await page.type('#input53', password);
         await page.click('input.button-primary[type="submit"]');
         await page.waitForNavigation();
