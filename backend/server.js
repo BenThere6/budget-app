@@ -14,7 +14,7 @@ const shouldCheckEmails = true;
 const app = express();
 const port = process.env.PORT || 3009;
 
-console.log(process.env.PUSH_TOKEN);
+console.log(process.env.PUSH_TOKEN)
 
 // Middleware to parse JSON bodies
 app.use(express.json());
@@ -243,6 +243,7 @@ async function processEmails() {
 
         // Sort keywords by specificity (amount presence and then by keyword length)
         keywords.sort((a, b) => {
+            // Prioritize keywords with amounts first, then by keyword length
             if (a.amount && !b.amount) return -1;
             if (!a.amount && b.amount) return 1;
             return b.keyword.length - a.keyword.length;
@@ -253,39 +254,53 @@ async function processEmails() {
         for (const transaction of transactions) {
             let matched = false;
 
+            // Convert transaction details to lowercase for case-insensitive matching
             const lowerCaseDetails = transaction.details.toLowerCase();
 
+            // Special case for Maverik or Chevron transactions (case-insensitive)
             if (lowerCaseDetails.includes('maverik') || lowerCaseDetails.includes('chevron')) {
                 const transactionAmount = parseFloat(transaction.amount);
-                let category = transactionAmount < 15 ? 'food' : 'gas';
+                let category;
+
+                if (transactionAmount < 15) {
+                    category = 'food';
+                } else {
+                    category = 'gas';
+                }
 
                 await addTransaction(transaction.date, transaction.details, transaction.amount, category);
                 await notifyCategoryTransaction(category, transaction.amount);
+                console.log(`Categorized Maverik or Chevron transaction: ${transaction.details} as ${category}`);
                 matched = true;
-                continue;
+                continue; // Skip further processing for this transaction
             }
 
+            // Regular keyword-based matching
             for (const { keyword, category, amount } of keywords) {
                 const keywordMatches = lowerCaseDetails.includes(keyword.toLowerCase());
                 const amountMatches = amount === null || transaction.amount === amount;
 
+                // Check if both keyword and amount match
                 if (keywordMatches && amountMatches) {
                     await addTransaction(transaction.date, transaction.details, transaction.amount, category);
                     await notifyCategoryTransaction(category, transaction.amount);
+                    console.log(`Categorized transaction found and added: ${transaction.details} with category ${category}`);
                     matched = true;
                     break;
                 }
             }
 
+            // If no match is found, add the transaction to the uncategorized list
             if (!matched) {
                 await addUncategorizedTransaction(transaction.date, transaction.details, transaction.amount);
-                newUncategorizedCount++;
+                newUncategorizedCount++; // Increase the count for each new uncategorized transaction
             }
         }
 
         if (newUncategorizedCount > 0) {
-            const token = process.env.PUSH_TOKEN;
+            const token = process.env.PUSH_TOKEN; // Retrieve the saved token from your database
             sendPushNotification(token, `${newUncategorizedCount} new uncategorized transaction(s) added.`);
+            console.log('Summary notification sent for new uncategorized transactions.');
         }
 
     } catch (err) {
@@ -299,7 +314,6 @@ function cleanAndParseFloat(value) {
     return parseFloat(cleanedValue);
 }
 
-// Function to fetch budget data and keep the original logic intact
 async function getBudgetData() {
     const sheets = google.sheets({ version: 'v4', auth: client });
 
@@ -367,7 +381,7 @@ async function getBudgetData() {
                 used: otherUsed,
                 remaining: otherBudget - otherUsed
             },
-            fillupPrice,
+            fillupPrice, 
         };
     } catch (error) {
         console.error('Error fetching budget data:', error);
@@ -375,86 +389,19 @@ async function getBudgetData() {
     }
 }
 
-// Function to get savings data
-async function getSavingsData() {
-    const sheets = google.sheets({ version: 'v4', auth: client });
-    try {
-        const response = await sheets.spreadsheets.values.batchGet({
-            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
-            ranges: [
-                'Dashboard!C31', 'Dashboard!E31', 'Dashboard!G31',
-                'Dashboard!C34', 'Dashboard!E34', 'Dashboard!G34',
-                'Dashboard!C37'
-            ],
-        });
-        return {
-            emergency: response.data.valueRanges[0].values[0][0],
-            general: response.data.valueRanges[1].values[0][0],
-            future: response.data.valueRanges[2].values[0][0],
-            treatYoSelf: response.data.valueRanges[3].values[0][0],
-            vehicle: response.data.valueRanges[4].values[0][0],
-            giftsDonations: response.data.valueRanges[5].values[0][0],
-            travelVacation: response.data.valueRanges[6].values[0][0],
-        };
-    } catch (error) {
-        console.error('Error fetching savings data:', error);
-        return null;
-    }
+function getPercentMonthPassed(date) {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);  
+
+    const daysInMonth = (monthEnd - monthStart) / (1000 * 60 * 60 * 24);
+    const daysPassed = (now - monthStart) / (1000 * 60 * 60 * 24);
+
+    return (daysPassed / daysInMonth) * 100;
 }
 
-// Function to get uncategorized transactions
-async function getUncategorizedTransactions() {
-    const sheets = google.sheets({ version: 'v4', auth: client });
-    try {
-        const response = await sheets.spreadsheets.values.get({
-            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
-            range: 'Uncategorized!A:D',
-        });
+// Notifications Logic
 
-        const rows = response.data.values;
-        if (!rows || rows.length === 0) {
-            console.log('No uncategorized transactions found.');
-            return [];
-        }
-
-        const headers = rows[0];
-        const isHeader = headers[0]?.toLowerCase() === "date" && headers[1]?.toLowerCase() === "details";
-
-        const dataRows = isHeader ? rows.slice(1) : rows;
-
-        const transactions = dataRows.map((row, index) => ({
-            id: index + 1,
-            date: row[0] || '',
-            details: row[1] || '',
-            amount: row[2] || '',
-            categorized: row[3] === 'true',
-        }));
-
-        return transactions;
-    } catch (error) {
-        console.error('Error fetching uncategorized transactions:', error);
-        return [];
-    }
-}
-
-// Function to get categories from the Google Sheets
-async function getCategories() {
-    const sheets = google.sheets({ version: 'v4', auth: client });
-    try {
-        const response = await sheets.spreadsheets.values.get({
-            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
-            range: 'Calculations!B128:DS128', // Adjust the range if necessary
-        });
-
-        const categories = response.data.values[0].filter(category => category.trim() !== '');
-        return categories;
-    } catch (error) {
-        console.error('Error fetching categories:', error);
-        return [];
-    }
-}
-
-// New notification logic for categorized transactions
 async function notifyCategoryTransaction(category, amount) {
     const token = process.env.PUSH_TOKEN; 
     const budgetData = await getBudgetData();
@@ -507,8 +454,9 @@ async function sendLowBudgetAlert(category, remainingAmount) {
     }
 }
 
-// All routes remain unchanged from original logic
+// All Routes
 
+// Endpoint to get current keywords
 app.get('/keywords', async (req, res) => {
     try {
         const keywords = await getKeywords(); // Use the existing getKeywords function
@@ -547,6 +495,21 @@ app.get('/budget', async (req, res) => {
     }
 });
 
+// Endpoint to save Expo push token
+app.post('/api/token', async (req, res) => {
+    const { token } = req.body;
+
+    if (!token) {
+        return res.status(400).json({ error: 'Token is required.' });
+    }
+
+    // Here you would typically save the token to a database
+    // Since it's a practice app, we will just log it
+    console.log('Received Expo push token:', token);
+
+    res.status(200).json({ message: 'Token saved successfully.' });
+});
+
 // Endpoint to get savings data
 app.get('/savings', async (req, res) => {
     const savingsData = await getSavingsData();
@@ -554,6 +517,118 @@ app.get('/savings', async (req, res) => {
         res.json(savingsData);
     } else {
         res.status(500).json({ error: 'Failed to fetch savings data' });
+    }
+});
+
+// Endpoint to save a keyword and category
+app.post('/save-keyword', async (req, res) => {
+    const { keyword, category, amount } = req.body;
+
+    if (!keyword || !category) {
+        return res.status(400).json({ error: 'Keyword and category are required.' });
+    }
+
+    const sheets = google.sheets({ version: 'v4', auth: client });
+
+    try {
+        await sheets.spreadsheets.values.append({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            range: 'Keywords!A:C', // Adjusted range to include amount
+            valueInputOption: 'RAW',
+            resource: {
+                values: [[keyword, category, amount || '']], // Save amount if provided
+            },
+        });
+        res.status(200).json({ message: 'Keyword, category, and amount saved successfully.' });
+    } catch (error) {
+        console.error('Error saving keyword, category, and amount:', error);
+        res.status(500).json({ error: 'Failed to save keyword, category, and amount.' });
+    }
+});
+
+app.delete('/delete-keyword', async (req, res) => {
+    const { keyword } = req.body;
+
+    try {
+        // Fetch all keywords from the Google Sheets
+        const keywords = await getKeywords();
+
+        // Find the index of the keyword in the sheet
+        const keywordIndex = keywords.findIndex(k => k.keyword === keyword);
+
+        if (keywordIndex === -1) {
+            return res.status(404).send('Keyword not found.');
+        }
+
+        // Get the sheet ID of the "Keywords" tab
+        const sheetId = await getSheetId('Keywords');
+        if (!sheetId) {
+            return res.status(500).send('Failed to retrieve the sheet ID.');
+        }
+
+        // Delete the row corresponding to the keyword in the sheet
+        await google.sheets({ version: 'v4', auth: client }).spreadsheets.batchUpdate({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            resource: {
+                requests: [
+                    {
+                        deleteDimension: {
+                            range: {
+                                sheetId: sheetId,
+                                dimension: 'ROWS',
+                                startIndex: keywordIndex + 0,
+                                endIndex: keywordIndex + 1,
+                            },
+                        },
+                    },
+                ],
+            },
+        });
+
+        res.status(200).send('Keyword deleted successfully.');
+    } catch (error) {
+        console.error('Error deleting keyword:', error);
+        res.status(500).send('Failed to delete keyword.');
+    }
+});
+
+// Endpoint to get categories
+app.get('/categories', async (req, res) => {
+    const categories = await getCategories();
+    if (categories.length > 0) {
+        res.json(categories);
+    } else {
+        res.status(500).json({ error: 'Failed to fetch categories' });
+    }
+});
+
+// Endpoint to categorize an uncategorized transaction
+app.post('/categorize-transaction', async (req, res) => {
+    const { id, category } = req.body;
+
+    if (!id || !category) {
+        return res.status(400).json({ error: 'Transaction ID and category are required.' });
+    }
+
+    try {
+        // Fetch the uncategorized transaction by its ID
+        const transactions = await getUncategorizedTransactions();
+        const transactionToCategorize = transactions.find(t => t.id === id);
+
+        if (!transactionToCategorize) {
+            return res.status(404).json({ error: 'Transaction not found.' });
+        }
+
+        // Move the transaction to the categorized 'Transactions' tab
+        await addTransaction(transactionToCategorize.date, transactionToCategorize.details, transactionToCategorize.amount, category);
+
+        // Delete the transaction from the 'Uncategorized' tab
+        await deleteUncategorizedTransaction(transactionToCategorize.id);
+
+        return res.status(200).json({ message: 'Transaction moved to Transactions tab and deleted from Uncategorized.' });
+    } catch (error) {
+        console.error('Error categorizing transaction:', error);
+        return res.status(500).json({ error: 'Failed to categorize transaction.' });
     }
 });
 
@@ -567,13 +642,49 @@ app.get('/uncategorized-transactions', async (req, res) => {
     }
 });
 
-// Endpoint to get categories
-app.get('/categories', async (req, res) => {
-    const categories = await getCategories();
-    if (categories.length > 0) {
-        res.json(categories);
-    } else {
-        res.status(500).json({ error: 'Failed to fetch categories' });
+// Endpoint to delete uncategorized transactions
+app.delete('/uncategorized-transactions/:rowIndex', async (req, res) => {
+    const { rowIndex } = req.params;
+
+    try {
+        const rowIndexInt = parseInt(rowIndex);
+
+        // Fetch the uncategorized transaction to be deleted
+        const transactions = await getUncategorizedTransactions();
+        const transactionToDelete = transactions.find(t => t.id === rowIndexInt);
+
+        if (!transactionToDelete) {
+            console.error(`Transaction with ID ${rowIndex} not found.`);
+            return res.status(404).json({ error: 'Transaction not found.' });
+        }
+
+        // Re-fetch all keywords and their categories to ensure the list is up-to-date
+        const keywords = await getKeywords();
+
+        // Check if the transaction's details contain any of the saved keywords
+        let matchingKeyword = null;
+        for (const { keyword, category, amount } of keywords) {
+            if (transactionToDelete.details.includes(keyword)) {
+                matchingKeyword = { keyword, category, amount };
+                break;
+            }
+        }
+
+        if (!matchingKeyword) {
+            console.error(`Cannot delete transaction with ID ${rowIndex}. No matching keywords found.`);
+            return res.status(403).json({ error: 'Cannot delete transaction. No matching keywords found.' });
+        }
+
+        // Add the transaction to the categorized tab first
+        await addTransaction(transactionToDelete.date, transactionToDelete.details, transactionToDelete.amount, matchingKeyword.category);
+
+        // Then delete the transaction from the uncategorized tab
+        await deleteUncategorizedTransaction(rowIndexInt);
+
+        res.status(200).json({ message: 'Transaction moved to categorized and deleted from uncategorized.' });
+    } catch (error) {
+        console.error(`Error deleting uncategorized transaction with ID ${rowIndex}:`, error);
+        res.status(500).json({ error: 'Failed to delete transaction.' });
     }
 });
 
