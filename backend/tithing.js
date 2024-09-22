@@ -70,7 +70,7 @@ async function automateDonation() {
                 for (let i = 0; i < 3; i++) {
                     await page.click('a[data-qa="nextStepButton"]');
                     console.log(`Retry ${i + 1}: Clicked Next Step button.`);
-                    await page.waitForTimeout(2000);
+                    await new Promise(resolve => setTimeout(resolve, 2000));  // delay between retries
                 }
             } catch (retryError) {
                 console.error('Retry click failed:', retryError);
@@ -89,7 +89,7 @@ async function automateDonation() {
                 console.log('Successfully moved to step 3 page.');
                 return;
             }
-            await page.waitForTimeout(5000);  // 5 second delay between retries
+            await new Promise(resolve => setTimeout(resolve, 5000));  // 5 second delay between retries
         }
         console.log('Failed to move to step 3 after multiple retries.');
     }
@@ -107,12 +107,12 @@ async function automateDonation() {
             console.error('Submit button click failed:', submitError);
         }
 
-        console.log('Checking for donation confirmation...');
-        try {
-            await page.waitForSelector('h1.confirmation-message', { timeout: 15000 });
-            console.log('Donation confirmed!');
-        } catch (confirmationError) {
-            console.error('Donation confirmation not detected:', confirmationError);
+        // Check if the final confirmation page is loaded
+        const confirmationUrl = 'https://donations.churchofjesuschrist.org/donations/#/donation/thankyou';
+        if (finalUrl === confirmationUrl) {
+            console.log('Donation confirmed! Reached thank you page.');
+        } else {
+            console.error('Donation confirmation not detected.');
         }
     } else {
         console.log('Did not reach step 3, cannot proceed with submission.');
