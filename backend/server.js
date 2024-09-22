@@ -14,7 +14,7 @@ const shouldCheckEmails = true;
 const app = express();
 const port = process.env.PORT || 3009;
 
-console.log(process.env.PUSH_TOKEN)
+console.log(process.env.PUSH_TOKEN);
 
 // Middleware to parse JSON bodies
 app.use(express.json());
@@ -243,7 +243,6 @@ async function processEmails() {
 
         // Sort keywords by specificity (amount presence and then by keyword length)
         keywords.sort((a, b) => {
-            // Prioritize keywords with amounts first, then by keyword length
             if (a.amount && !b.amount) return -1;
             if (!a.amount && b.amount) return 1;
             return b.keyword.length - a.keyword.length;
@@ -254,53 +253,39 @@ async function processEmails() {
         for (const transaction of transactions) {
             let matched = false;
 
-            // Convert transaction details to lowercase for case-insensitive matching
             const lowerCaseDetails = transaction.details.toLowerCase();
 
-            // Special case for Maverik or Chevron transactions (case-insensitive)
             if (lowerCaseDetails.includes('maverik') || lowerCaseDetails.includes('chevron')) {
                 const transactionAmount = parseFloat(transaction.amount);
-                let category;
-
-                if (transactionAmount < 15) {
-                    category = 'food';
-                } else {
-                    category = 'gas';
-                }
+                let category = transactionAmount < 15 ? 'food' : 'gas';
 
                 await addTransaction(transaction.date, transaction.details, transaction.amount, category);
                 await notifyCategoryTransaction(category, transaction.amount);
-                console.log(`Categorized Maverik or Chevron transaction: ${transaction.details} as ${category}`);
                 matched = true;
-                continue; // Skip further processing for this transaction
+                continue;
             }
 
-            // Regular keyword-based matching
             for (const { keyword, category, amount } of keywords) {
                 const keywordMatches = lowerCaseDetails.includes(keyword.toLowerCase());
                 const amountMatches = amount === null || transaction.amount === amount;
 
-                // Check if both keyword and amount match
                 if (keywordMatches && amountMatches) {
                     await addTransaction(transaction.date, transaction.details, transaction.amount, category);
                     await notifyCategoryTransaction(category, transaction.amount);
-                    console.log(`Categorized transaction found and added: ${transaction.details} with category ${category}`);
                     matched = true;
                     break;
                 }
             }
 
-            // If no match is found, add the transaction to the uncategorized list
             if (!matched) {
                 await addUncategorizedTransaction(transaction.date, transaction.details, transaction.amount);
-                newUncategorizedCount++; // Increase the count for each new uncategorized transaction
+                newUncategorizedCount++;
             }
         }
 
         if (newUncategorizedCount > 0) {
-            const token = process.env.PUSH_TOKEN; // Retrieve the saved token from your database
+            const token = process.env.PUSH_TOKEN;
             sendPushNotification(token, `${newUncategorizedCount} new uncategorized transaction(s) added.`);
-            console.log('Summary notification sent for new uncategorized transactions.');
         }
 
     } catch (err) {
@@ -314,6 +299,7 @@ function cleanAndParseFloat(value) {
     return parseFloat(cleanedValue);
 }
 
+// Function to fetch budget data and keep the original logic intact
 async function getBudgetData() {
     const sheets = google.sheets({ version: 'v4', auth: client });
 
@@ -381,7 +367,7 @@ async function getBudgetData() {
                 used: otherUsed,
                 remaining: otherBudget - otherUsed
             },
-            fillupPrice, 
+            fillupPrice,
         };
     } catch (error) {
         console.error('Error fetching budget data:', error);
@@ -389,7 +375,7 @@ async function getBudgetData() {
     }
 }
 
-function getPercentMonthPassed(date) {
+function getPercentMonthPassed() {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);  
@@ -400,6 +386,7 @@ function getPercentMonthPassed(date) {
     return (daysPassed / daysInMonth) * 100;
 }
 
+// New notification logic for categorized transactions
 async function notifyCategoryTransaction(category, amount) {
     const token = process.env.PUSH_TOKEN; 
     const budgetData = await getBudgetData();
@@ -451,6 +438,46 @@ async function sendLowBudgetAlert(category, remainingAmount) {
         await sendPushNotification(token, message);
     }
 }
+
+// All routes remain unchanged from original logic
+
+app.get('/keywords', async (req, res) => {
+    try {
+        const keywords = await getKeywords(); // Use the existing getKeywords function
+        res.status(200).json(keywords);
+    } catch (error) {
+        console.error('Error fetching keywords:', error);
+        res.status(500).json({ error: 'Failed to fetch keywords.' });
+    }
+});
+
+// Endpoint to add a transaction
+app.post('/add-transaction', async (req, res) => {
+    const { date, category, amount, details } = req.body;
+
+    if (!date || !category || !amount || !details) {
+        return res.status(400).json({ error: 'Date, category, amount, and details are required.' });
+    }
+
+    try {
+        await addTransaction(date, details, amount, category);
+        res.status(200).json({ message: 'Transaction added successfully.' });
+    } catch (error) {
+        console.error('Error adding transaction:', error);
+        res.status(500).json({ error: 'Failed to add transaction.' });
+    }
+});
+
+// Endpoint to get budget data
+app.get('/budget', async (req, res) => {
+    const budgetData = await getBudgetData();
+    console.log(budgetData);
+    if (budgetData) {
+        res.json(budgetData);
+    } else {
+        res.status(500).json({ error: 'Failed to fetch budget data' });
+    }
+});
 
 // Start the server and initiate email checking immediately
 app.listen(port, () => {
