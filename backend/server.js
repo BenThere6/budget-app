@@ -6,6 +6,9 @@ const { simpleParser } = require('mailparser');
 require('dotenv').config();
 const cors = require('cors');
 const { Expo } = require('expo-server-sdk');
+const schedule = require('node-schedule'); // For scheduling tasks
+const { automateDonation } = require('./tithing'); // Import the automateDonation function
+
 let expo = new Expo();
 
 const shouldCheckEmails = true;
@@ -454,6 +457,71 @@ async function sendLowBudgetAlert(category, remainingAmount) {
     }
 }
 
+// Function to get the tithing amount from the Google Sheets
+async function getTithingAmount() {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0 = January, 1 = February, etc.
+
+    const baseYear = 2024;
+    const baseRow = 3; // February 2024 starts at row 3
+
+    let rowToFetch = baseRow + (currentYear - baseYear) * 12 + currentMonth;
+
+    const range = `Exp Expenses!C${rowToFetch}:C${rowToFetch}`; // Tithing is in column C
+
+    try {
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            range,
+        });
+
+        const tithingAmountRaw = response.data.values[0][0];
+        const tithingAmount = cleanAndParseFloat(tithingAmountRaw);
+        return tithingAmount;
+    } catch (error) {
+        console.error('Error fetching tithing amount:', error);
+        return null;
+    }
+}
+
+// Schedule Tithing Payments Function
+function scheduleTithingPayments() {
+    const rule = new schedule.RecurrenceRule();
+    rule.dayOfWeek = 1; // Monday
+    rule.date = [1, 2, 3, 4, 5, 6, 7]; // First seven days of the month
+    rule.hour = 10;
+    rule.minute = 0;
+    rule.tz = 'America/Denver';
+
+    const job = schedule.scheduleJob(rule, async function () {
+        const now = new Date();
+
+        if (now.getDate() <= 7 && now.getDay() === 1) {
+            console.log('It\'s the first Monday of the month! Processing tithing payment...');
+
+            const tithingAmount = await getTithingAmount();
+
+            if (tithingAmount) {
+                console.log(`Tithing amount to pay: ${tithingAmount}`);
+
+                try {
+                    await automateDonation(tithingAmount.toString());
+                    console.log('Tithing payment successful.');
+                } catch (err) {
+                    console.error('Error during tithing automation:', err);
+                }
+            } else {
+                console.error('No valid tithing amount found. Skipping payment.');
+            }
+        } else {
+            console.log('Today is not the first Monday of the month. No tithing payment scheduled.');
+        }
+    });
+}
+
 // All Routes
 
 // Endpoint to get current keywords
@@ -695,4 +763,7 @@ app.listen(port, () => {
         processEmails(); 
         setInterval(processEmails, 1 * 60 * 1000); 
     }
+
+    // Schedule the monthly tithing payments
+    scheduleTithingPayments();
 });
