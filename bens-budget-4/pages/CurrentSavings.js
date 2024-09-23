@@ -16,8 +16,8 @@ export default function CurrentSavings({ navigation }) {
 
   const formatAmount = (amount) => {
     const parsedAmount = parseFloat(amount);
-    return parsedAmount < 0 ? `$0` : `$${parsedAmount}`;
-  };
+    return parsedAmount < 0 ? `-$${Math.abs(parsedAmount).toFixed(2)}` : `$${parsedAmount.toFixed(2)}`;
+};
 
   const fetchSavingsData = async () => {
     setIsLoading(true);
