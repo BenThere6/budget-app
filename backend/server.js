@@ -458,7 +458,7 @@ async function getTithingAmount() {
 
     try {
         const response = await sheets.spreadsheets.values.get({
-            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            spreadsheetId: process.env.SPREADSHEET_ID,
             range,
         });
 
@@ -691,7 +691,7 @@ app.post('/save-keyword', async (req, res) => {
 
     try {
         await sheets.spreadsheets.values.append({
-            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            spreadsheetId: process.env.SPREADSHEET_ID,
             range: 'Keywords!A:C', // Adjusted range to include amount
             valueInputOption: 'RAW',
             resource: {
@@ -727,7 +727,7 @@ app.delete('/delete-keyword', async (req, res) => {
 
         // Delete the row corresponding to the keyword in the sheet
         await google.sheets({ version: 'v4', auth: client }).spreadsheets.batchUpdate({
-            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            spreadsheetId: process.env.SPREADSHEET_ID,
             resource: {
                 requests: [
                     {
