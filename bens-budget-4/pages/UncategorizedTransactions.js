@@ -39,12 +39,12 @@ export default function UncategorizedTransactions({ navigation }) {
         try {
             const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/categories');
             const data = await response.json();
-            setCategories(data);
+            setCategories(data); // Storing categories in the state
         } catch (error) {
             console.error('Error fetching categories:', error);
         }
     };
-
+    
     const fetchKeywords = async () => {
         try {
             const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/keywords');

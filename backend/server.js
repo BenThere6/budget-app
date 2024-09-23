@@ -550,7 +550,11 @@ async function getCategories() {
             range: 'Calculations!B128:DS128',  // Adjust the range to your specific sheet and cells
         });
 
-        const categories = response.data.values[0];  // Get the row of categories (since it is a single row)
+        let categories = response.data.values[0];  // Get the row of categories (since it is a single row)
+
+        // Filter out empty categories or categories that are just whitespace
+        categories = categories.filter(category => category && category.trim());
+
         return categories;
     } catch (error) {
         console.error('Error fetching categories:', error);
