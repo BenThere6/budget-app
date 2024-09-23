@@ -2,3 +2,4 @@ package-lock.json
 service-account-key.json
 node_modules
 .env
+.DS_STORE
