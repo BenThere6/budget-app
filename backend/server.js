@@ -562,6 +562,27 @@ async function getCategories() {
     }
 }
 
+async function getSheetId(sheetName) {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+
+    try {
+        const response = await sheets.spreadsheets.get({
+            spreadsheetId: process.env.SPREADSHEET_ID,
+        });
+
+        const sheet = response.data.sheets.find(s => s.properties.title === sheetName);
+
+        if (sheet) {
+            return sheet.properties.sheetId;
+        } else {
+            throw new Error(`Sheet with name "${sheetName}" not found.`);
+        }
+    } catch (error) {
+        console.error(`Error getting sheet ID for "${sheetName}":`, error);
+        throw new Error('Failed to get sheet ID.');
+    }
+}
+
 // Function to delete an uncategorized transaction by its rowIndex
 async function deleteUncategorizedTransaction(rowIndex) {
     const sheets = google.sheets({ version: 'v4', auth: client });
