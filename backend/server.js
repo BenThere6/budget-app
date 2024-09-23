@@ -510,7 +510,7 @@ async function getSavingsData() {
     const sheets = google.sheets({ version: 'v4', auth: client });
     
     try {
-        const range = 'Dashboard!C29:E37'; // Adjust this range if needed
+        const range = 'Dashboard!C31:E37'; // Adjust this range to fetch necessary cells
 
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId: process.env.SPREADSHEET_ID,
@@ -521,25 +521,15 @@ async function getSavingsData() {
             throw new Error("No savings data found in Google Sheets");
         }
 
-        // Add a fallback value for undefined rows
-        const [
-            [emergency = '0'], 
-            [general = '0'], 
-            [future = '0'], 
-            [treatYoSelf = '0'], 
-            [vehicle = '0'], 
-            [giftsDonations = '0'], 
-            [travelVacation = '0']
-        ] = response.data.values;
-
+        // Ensure you map the exact savings data from the appropriate rows/columns
         const savingsData = {
-            emergency,
-            general,
-            future,
-            treatYoSelf,
-            vehicle,
-            giftsDonations,
-            travelVacation,
+            emergency: response.data.values[0][0] || '0',  // C31
+            general: response.data.values[0][2] || '0',    // E31
+            future: response.data.values[0][4] || '0',     // G31
+            treatYoSelf: response.data.values[3][0] || '0',// C34
+            vehicle: response.data.values[3][2] || '0',    // E34
+            giftsDonations: response.data.values[3][4] || '0', // G34
+            travelVacation: response.data.values[6][0] || '0', // C37
         };
 
         return savingsData;
