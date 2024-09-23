@@ -510,11 +510,10 @@ async function getSavingsData() {
     const sheets = google.sheets({ version: 'v4', auth: client });
     
     try {
-        // Adjust this to match the actual range for savings data in the "Dashboard" tab
-        const range = 'Dashboard!C29:E37'; // Assuming this range covers the savings categories from the image
+        const range = 'Dashboard!C29:E37'; // Adjust this range if needed
 
         const response = await sheets.spreadsheets.values.get({
-            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs', // Replace with your actual spreadsheet ID
+            spreadsheetId: process.env.SPREADSHEET_ID,
             range: range,
         });
 
@@ -522,8 +521,16 @@ async function getSavingsData() {
             throw new Error("No savings data found in Google Sheets");
         }
 
-        // Assuming each category and amount are in separate cells
-        const [emergency, general, future, treatYoSelf, vehicle, giftsDonations, travelVacation] = response.data.values.map(row => row[0]);
+        // Add a fallback value for undefined rows
+        const [
+            [emergency = '0'], 
+            [general = '0'], 
+            [future = '0'], 
+            [treatYoSelf = '0'], 
+            [vehicle = '0'], 
+            [giftsDonations = '0'], 
+            [travelVacation = '0']
+        ] = response.data.values;
 
         const savingsData = {
             emergency,

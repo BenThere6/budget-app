@@ -26,13 +26,13 @@ export default function CurrentSavings({ navigation }) {
       const data = await response.json();
 
       const cleanedData = {
-        Emergency: formatAmount(data.emergency.replace(/[$,]/g, '')),
-        General: formatAmount(data.general.replace(/[$,]/g, '')),
-        Future: formatAmount(data.future.replace(/[$,]/g, '')),
-        TreatYoSelf: formatAmount(data.treatYoSelf.replace(/[$,]/g, '')),
-        Vehicle: formatAmount(data.vehicle.replace(/[$,]/g, '')),
-        GiftsDonations: formatAmount(data.giftsDonations.replace(/[$,]/g, '')),
-        TravelVacation: formatAmount(data.travelVacation.replace(/[$,]/g, '')),
+        Emergency: formatAmount(data.emergency ? data.emergency.replace(/[$,]/g, '') : '0'),
+        General: formatAmount(data.general ? data.general.replace(/[$,]/g, '') : '0'),
+        Future: formatAmount(data.future ? data.future.replace(/[$,]/g, '') : '0'),
+        TreatYoSelf: formatAmount(data.treatYoSelf ? data.treatYoSelf.replace(/[$,]/g, '') : '0'),
+        Vehicle: formatAmount(data.vehicle ? data.vehicle.replace(/[$,]/g, '') : '0'),
+        GiftsDonations: formatAmount(data.giftsDonations ? data.giftsDonations.replace(/[$,]/g, '') : '0'),
+        TravelVacation: formatAmount(data.travelVacation ? data.travelVacation.replace(/[$,]/g, '') : '0'),
       };
 
       setSavingsData(cleanedData);
