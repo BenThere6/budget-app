@@ -38,8 +38,12 @@ export default function UncategorizedTransactions({ navigation }) {
     const fetchCategories = async () => {
         try {
             const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/categories');
-            const data = await response.json();
-            setCategories(data); // Storing categories in the state
+            let data = await response.json();
+            
+            // Filter out any blank or whitespace-only categories
+            data = data.filter(category => category && category.trim() !== '');
+            
+            setCategories(data); // Storing filtered categories in the state
         } catch (error) {
             console.error('Error fetching categories:', error);
         }
