@@ -506,6 +506,43 @@ function scheduleTithingPayments() {
     });
 }
 
+async function getSavingsData() {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+    
+    try {
+        // Adjust this to match the actual range for savings data in the "Dashboard" tab
+        const range = 'Dashboard!C29:E37'; // Assuming this range covers the savings categories from the image
+
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs', // Replace with your actual spreadsheet ID
+            range: range,
+        });
+
+        if (!response || !response.data || response.data.values.length === 0) {
+            throw new Error("No savings data found in Google Sheets");
+        }
+
+        // Assuming each category and amount are in separate cells
+        const [emergency, general, future, treatYoSelf, vehicle, giftsDonations, travelVacation] = response.data.values.map(row => row[0]);
+
+        const savingsData = {
+            emergency,
+            general,
+            future,
+            treatYoSelf,
+            vehicle,
+            giftsDonations,
+            travelVacation,
+        };
+
+        return savingsData;
+
+    } catch (error) {
+        console.error('Error fetching savings data:', error.message);
+        return { error: "Failed to fetch savings data" };
+    }
+}
+
 // All Routes
 
 // Endpoint to get current keywords
