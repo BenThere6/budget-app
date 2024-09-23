@@ -319,18 +319,15 @@ function cleanAndParseFloat(value) {
 
 async function getBudgetData() {
     const sheets = google.sheets({ version: 'v4', auth: client });
-
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth(); 
-
     const baseYear = 2024;
     const baseRow = 3; 
-
     let rowToFetch = baseRow + (currentYear - baseYear) * 12 + currentMonth;
 
-    const rangeGoals = `Minutia!A${rowToFetch}:F${rowToFetch}`;  
-    const rangeSums = `Minutia!H${rowToFetch}:N${rowToFetch}`;  
+    const rangeGoals = `Minutia!A${rowToFetch}:F${rowToFetch}`;
+    const rangeSums = `Minutia!H${rowToFetch}:N${rowToFetch}`;
     const rangeFillupPrice = 'Calculations!B13';
 
     try {
@@ -339,16 +336,19 @@ async function getBudgetData() {
             ranges: [rangeGoals, rangeSums, rangeFillupPrice],
         });
 
-        const goalsData = response.data.valueRanges[0].values[0];  
-        const sumsData = response.data.valueRanges[1].values[0];   
-        let fillupPriceRaw = response.data.valueRanges[2].values[0][0];
+        if (!response || !response.data || response.data.valueRanges.length === 0) {
+            throw new Error("Invalid response from Google Sheets");
+        }
 
-        fillupPriceRaw = fillupPriceRaw.replace(/[$\s]/g, '');  
-        const fillupPrice = parseFloat(fillupPriceRaw); 
+        const goalsData = response.data.valueRanges[0]?.values?.[0] || [];
+        const sumsData = response.data.valueRanges[1]?.values?.[0] || [];
+        let fillupPriceRaw = response.data.valueRanges[2]?.values?.[0]?.[0];
+
+        fillupPriceRaw = fillupPriceRaw?.replace(/[$\s]/g, '');  // Remove dollar signs and spaces
+        const fillupPrice = parseFloat(fillupPriceRaw);
 
         if (isNaN(fillupPrice)) {
-            console.error("Invalid fill-up price:", fillupPriceRaw);
-            return null;
+            throw new Error("Invalid fill-up price");
         }
 
         const percentMonthPassed = getPercentMonthPassed(sumsData[0]);
@@ -364,31 +364,15 @@ async function getBudgetData() {
 
         return {
             percentMonthPassed,
-            food: {
-                total: foodBudget,
-                used: foodUsed,
-                remaining: foodBudget - foodUsed
-            },
-            shopping: {
-                total: shoppingBudget,
-                used: shoppingUsed,
-                remaining: shoppingBudget - shoppingUsed
-            },
-            gas: {
-                total: gasBudget,
-                used: gasUsed,
-                remaining: gasBudget - gasUsed
-            },
-            other: {
-                total: otherBudget,
-                used: otherUsed,
-                remaining: otherBudget - otherUsed
-            },
-            fillupPrice, 
+            food: { total: foodBudget, used: foodUsed, remaining: foodBudget - foodUsed },
+            shopping: { total: shoppingBudget, used: shoppingUsed, remaining: shoppingBudget - shoppingUsed },
+            gas: { total: gasBudget, used: gasUsed, remaining: gasBudget - gasUsed },
+            other: { total: otherBudget, used: otherUsed, remaining: otherBudget - otherUsed },
+            fillupPrice,
         };
     } catch (error) {
-        console.error('Error fetching budget data:', error);
-        return null;
+        console.error('Error fetching budget data:', error.message);
+        return { error: "Failed to fetch budget data" }; // Return a valid JSON response even on error
     }
 }
 
