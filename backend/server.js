@@ -62,7 +62,7 @@ async function getKeywords() {
     const sheets = google.sheets({ version: 'v4', auth: client });
     try {
         const response = await sheets.spreadsheets.values.get({
-            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            spreadsheetId: process.env.SPREADSHEET_ID,
             range: 'Keywords!A:C',  // Adjust the range to include the third column for amount
         });
         return response.data.values.map(([keyword, category, amount]) => ({
@@ -91,7 +91,7 @@ async function addTransaction(date, details, amount, category) {
 
     try {
         const response = await sheets.spreadsheets.values.append({
-            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            spreadsheetId: process.env.SPREADSHEET_ID,
             range: 'Transactions!A:D',
             valueInputOption: 'USER_ENTERED', // Use USER_ENTERED to prevent the tick mark
             resource: {
@@ -124,7 +124,7 @@ async function addUncategorizedTransaction(date, details, amount) {
 
     try {
         await sheets.spreadsheets.values.append({
-            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            spreadsheetId: process.env.SPREADSHEET_ID,
             range: 'Uncategorized!A:D',
             valueInputOption: 'USER_ENTERED', // Use USER_ENTERED to prevent the tick mark
             resource: {
@@ -332,7 +332,7 @@ async function getBudgetData() {
 
     try {
         const response = await sheets.spreadsheets.values.batchGet({
-            spreadsheetId: '1I__EoadW0ou_wylMFqxkSjrxiXiMrouhBG-Sh5hEsXs',
+            spreadsheetId: process.env.SPREADSHEET_ID,
             ranges: [rangeGoals, rangeSums, rangeFillupPrice],
         });
 
@@ -372,7 +372,7 @@ async function getBudgetData() {
         };
     } catch (error) {
         console.error('Error fetching budget data:', error.message);
-        return { error: "Failed to fetch budget data" }; // Return a valid JSON response even on error
+        return { error: "Failed to fetch budget data" }; 
     }
 }
 
