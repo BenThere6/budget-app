@@ -538,11 +538,11 @@ app.post('/add-transaction', async (req, res) => {
 
 // Endpoint to get budget data
 app.get('/budget', async (req, res) => {
-    const budgetData = await getBudgetData();
-    console.log(budgetData);
-    if (budgetData) {
+    try {
+        const budgetData = await getBudgetData();
         res.json(budgetData);
-    } else {
+    } catch (error) {
+        console.error('Error fetching budget data:', error);
         res.status(500).json({ error: 'Failed to fetch budget data' });
     }
 });
