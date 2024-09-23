@@ -41,17 +41,18 @@ export default function CurrentBudgets({ navigation }) {
     return parsedAmount < 0 ? `-$${Math.abs(Math.round(parsedAmount))}` : `$${Math.round(parsedAmount)}`;
   };
 
-  // Updated function to apply gray style for negative or zero amounts (daily or monthly)
   const getAmountStyle = (category, isDaily) => {
     const amount = isDaily ? getDailyRemainingBudget(category) : category.remaining;
     return parseFloat(amount) > 0 ? styles.amountPositive : styles.amountNegative;
   };
 
-  // Updated function to apply gray style for gas fillups < 1 (daily or monthly)
   const getGasStyle = (category, isDaily) => {
-    const fillups = isDaily ? calculateFillupsLeft(getDailyRemainingBudget(category)) : calculateFillupsLeft(category.remaining);
+    const remainingBudget = isDaily ? getDailyRemainingBudget(category) : category.remaining;
+    const fillups = calculateFillupsLeft(remainingBudget);
+  
+    // Display in gray if fill-ups are less than 1, otherwise use positive style
     return parseFloat(fillups) >= 1 ? styles.amountPositive : styles.amountNegative;
-  };
+  };  
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -93,7 +94,7 @@ export default function CurrentBudgets({ navigation }) {
               <Text style={styles.headerText}>Amount</Text>
             </View>
 
-            {/* Table Rows */}
+            {/* Food Budget */}
             <View style={styles.tableRow}>
               <Text style={styles.cellText}>Food</Text>
               <Text style={getAmountStyle(budgetData.food, toggleDailyBudget)}>
@@ -103,6 +104,7 @@ export default function CurrentBudgets({ navigation }) {
               </Text>
             </View>
 
+            {/* Shopping Budget */}
             <View style={styles.tableRow}>
               <Text style={styles.cellText}>Shopping</Text>
               <Text style={getAmountStyle(budgetData.shopping, toggleDailyBudget)}>
@@ -112,15 +114,17 @@ export default function CurrentBudgets({ navigation }) {
               </Text>
             </View>
 
+            {/* Gas Budget */}
             <View style={styles.tableRow}>
               <Text style={styles.cellText}>Gas</Text>
               <Text style={getGasStyle(budgetData.gas, toggleDailyBudget)}>
                 {toggleDailyBudget
-                  ? `${calculateFillupsLeft(getDailyRemainingBudget(budgetData.gas))} fillups`
-                  : `${calculateFillupsLeft(budgetData.gas.remaining)} fillups`}
+                  ? `${formatDollarAmount(getDailyRemainingBudget(budgetData.gas))} / ${calculateFillupsLeft(getDailyRemainingBudget(budgetData.gas))} fillups`
+                  : `${formatDollarAmount(budgetData.gas.remaining)} / ${calculateFillupsLeft(budgetData.gas.remaining)} fillups`}
               </Text>
             </View>
 
+            {/* Other Budget */}
             <View style={styles.tableRow}>
               <Text style={styles.cellText}>Other</Text>
               <Text style={getAmountStyle(budgetData.other, toggleDailyBudget)}>
@@ -131,7 +135,7 @@ export default function CurrentBudgets({ navigation }) {
             </View>
           </View>
 
-          {/* Toggle at the bottom */}
+          {/* Toggle for Daily Budget */}
           <View style={styles.toggleContainer}>
             <Text style={styles.toggleLabel}>Daily Budget</Text>
             <Switch
@@ -149,10 +153,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    justifyContent: 'space-between', // Makes sure content is spread, toggle will be at the bottom
+    justifyContent: 'space-between',
   },
   table: {
-    flex: 1, // Takes up available space above the toggle
+    flex: 1,
     width: '100%',
   },
   tableRow: {
@@ -174,7 +178,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   amountNegative: {
-    color: 'gray',  // Gray color for negative/neutral amounts
+    color: 'gray',
     fontWeight: 'bold',
   },
   toggleContainer: {
