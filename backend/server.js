@@ -321,9 +321,9 @@ async function getBudgetData() {
     const sheets = google.sheets({ version: 'v4', auth: client });
     const now = new Date();
     const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth(); 
+    const currentMonth = now.getMonth();
     const baseYear = 2024;
-    const baseRow = 3; 
+    const baseRow = 3;
     let rowToFetch = baseRow + (currentYear - baseYear) * 12 + currentMonth;
 
     const rangeGoals = `Minutia!A${rowToFetch}:F${rowToFetch}`;
@@ -372,14 +372,14 @@ async function getBudgetData() {
         };
     } catch (error) {
         console.error('Error fetching budget data:', error.message);
-        return { error: "Failed to fetch budget data" }; 
+        return { error: "Failed to fetch budget data" };
     }
 }
 
 function getPercentMonthPassed(date) {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);  
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
     const daysInMonth = (monthEnd - monthStart) / (1000 * 60 * 60 * 24);
     const daysPassed = (now - monthStart) / (1000 * 60 * 60 * 24);
@@ -390,7 +390,7 @@ function getPercentMonthPassed(date) {
 // Notifications Logic
 
 async function notifyCategoryTransaction(category, amount) {
-    const token = process.env.PUSH_TOKEN; 
+    const token = process.env.PUSH_TOKEN;
     const budgetData = await getBudgetData();
     if (!budgetData) {
         console.error('Failed to retrieve budget data.');
@@ -508,7 +508,7 @@ function scheduleTithingPayments() {
 
 async function getSavingsData() {
     const sheets = google.sheets({ version: 'v4', auth: client });
-    
+
     try {
         const range = 'Dashboard!C31:E37'; // Adjust this range to fetch necessary cells
 
@@ -537,6 +537,24 @@ async function getSavingsData() {
     } catch (error) {
         console.error('Error fetching savings data:', error.message);
         return { error: "Failed to fetch savings data" };
+    }
+}
+
+// Define the function to fetch categories from the Google Sheets
+async function getCategories() {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+
+    try {
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: process.env.SPREADSHEET_ID,
+            range: 'Calculations!B128:DS128',  // Adjust the range to your specific sheet and cells
+        });
+
+        const categories = response.data.values[0];  // Get the row of categories (since it is a single row)
+        return categories;
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        return [];
     }
 }
 
@@ -778,8 +796,8 @@ app.delete('/uncategorized-transactions/:rowIndex', async (req, res) => {
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
     if (shouldCheckEmails) {
-        processEmails(); 
-        setInterval(processEmails, 1 * 60 * 1000); 
+        processEmails();
+        setInterval(processEmails, 1 * 60 * 1000);
     }
 
     // Schedule the monthly tithing payments
