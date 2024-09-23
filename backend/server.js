@@ -558,6 +558,28 @@ async function getCategories() {
     }
 }
 
+async function getUncategorizedTransactions() {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+
+    try {
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: process.env.SPREADSHEET_ID,  // Your Google Sheets ID
+            range: 'Uncategorized!A:D',  // The range of your uncategorized transactions
+        });
+
+        return response.data.values.map((row, index) => ({
+            id: index,
+            date: row[0],
+            details: row[1],
+            amount: row[2],
+            isCategorized: row[3] === 'true',
+        }));
+    } catch (error) {
+        console.error('Error fetching uncategorized transactions:', error);
+        return [];
+    }
+}
+
 // All Routes
 
 // Endpoint to get current keywords
