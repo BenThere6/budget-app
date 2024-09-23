@@ -562,6 +562,35 @@ async function getCategories() {
     }
 }
 
+// Function to delete an uncategorized transaction by its rowIndex
+async function deleteUncategorizedTransaction(rowIndex) {
+    const sheets = google.sheets({ version: 'v4', auth: client });
+
+    try {
+        await sheets.spreadsheets.batchUpdate({
+            spreadsheetId: process.env.SPREADSHEET_ID,
+            resource: {
+                requests: [
+                    {
+                        deleteDimension: {
+                            range: {
+                                sheetId: await getSheetId('Uncategorized'), // Fetch the sheet ID of 'Uncategorized'
+                                dimension: 'ROWS',
+                                startIndex: rowIndex,  // The index of the row to delete (0-based)
+                                endIndex: rowIndex + 1, // End index should be exclusive
+                            },
+                        },
+                    },
+                ],
+            },
+        });
+        console.log(`Uncategorized transaction at row ${rowIndex} deleted successfully.`);
+    } catch (error) {
+        console.error(`Error deleting uncategorized transaction at row ${rowIndex}:`, error);
+        throw new Error('Failed to delete uncategorized transaction.');
+    }
+}
+
 async function getUncategorizedTransactions() {
     const sheets = google.sheets({ version: 'v4', auth: client });
 
