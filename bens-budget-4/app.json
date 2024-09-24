@@ -18,7 +18,8 @@
         "image": "./assets/splash.png",
         "resizeMode": "cover",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "buildNumber": "2"
     },
     "android": {
       "adaptiveIcon": {

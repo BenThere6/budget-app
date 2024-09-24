@@ -11,10 +11,26 @@
       "distribution": "internal"
     },
     "production": {
-      "distribution": "store"
+      "distribution": "internal",
+      "ios": {
+        "simulator": false,
+        "autoIncrement": "buildNumber"
+      },
+      "android": {
+        "buildType": "apk",
+        "autoIncrement": true
+      }
     },
     "adhoc": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "ios": {
+        "simulator": false,
+        "autoIncrement": "buildNumber"
+      },
+      "android": {
+        "buildType": "apk",
+        "autoIncrement": true
+      }
     }
   },
   "submit": {
