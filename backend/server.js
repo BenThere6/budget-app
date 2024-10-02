@@ -510,7 +510,7 @@ async function getSavingsData() {
     const sheets = google.sheets({ version: 'v4', auth: client });
 
     try {
-        const range = 'Dashboard!C30:E40'; // Adjust this range to include the cells above for names
+        const range = 'Dashboard!C30:G40'; // Adjust this range to include the cells above for names
 
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId: process.env.SPREADSHEET_ID,

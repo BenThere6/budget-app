@@ -3,21 +3,13 @@ import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'rea
 import { MaterialIcons } from '@expo/vector-icons';
 
 export default function CurrentSavings({ navigation }) {
-  const [savingsData, setSavingsData] = useState({
-    emergency: '',
-    general: '',
-    future: '',
-    treatYoSelf: '',
-    vehicle: '',
-    giftsDonations: '',
-    travelVacation: ''
-  });
+  const [savingsData, setSavingsData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const formatAmount = (amount) => {
     const parsedAmount = parseFloat(amount);
     return parsedAmount < 0 ? `-$${Math.abs(parsedAmount).toFixed(2)}` : `$${parsedAmount.toFixed(2)}`;
-};
+  };
 
   const fetchSavingsData = async () => {
     setIsLoading(true);
@@ -25,15 +17,10 @@ export default function CurrentSavings({ navigation }) {
       const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/savings');
       const data = await response.json();
 
-      const cleanedData = {
-        Emergency: formatAmount(data.emergency ? data.emergency.replace(/[$,]/g, '') : '0'),
-        General: formatAmount(data.general ? data.general.replace(/[$,]/g, '') : '0'),
-        Future: formatAmount(data.future ? data.future.replace(/[$,]/g, '') : '0'),
-        TreatYoSelf: formatAmount(data.treatYoSelf ? data.treatYoSelf.replace(/[$,]/g, '') : '0'),
-        Vehicle: formatAmount(data.vehicle ? data.vehicle.replace(/[$,]/g, '') : '0'),
-        GiftsDonations: formatAmount(data.giftsDonations ? data.giftsDonations.replace(/[$,]/g, '') : '0'),
-        TravelVacation: formatAmount(data.travelVacation ? data.travelVacation.replace(/[$,]/g, '') : '0'),
-      };
+      const cleanedData = Object.keys(data).map(category => ({
+        name: data[category].name,
+        amount: formatAmount(data[category].amount.replace(/[$,]/g, ''))
+      }));
 
       setSavingsData(cleanedData);
     } catch (error) {
@@ -75,10 +62,10 @@ export default function CurrentSavings({ navigation }) {
           </View>
 
           {/* Table Rows */}
-          {Object.keys(savingsData).map((category) => (
-            <View style={styles.tableRow} key={category}>
-              <Text style={styles.cellText}>{category}</Text>
-              <Text style={[styles.cellText, getAmountStyle(savingsData[category])]}>{savingsData[category]}</Text>
+          {savingsData.map((item, index) => (
+            <View style={styles.tableRow} key={index}>
+              <Text style={styles.cellText}>{item.name}</Text>
+              <Text style={[styles.cellText, getAmountStyle(item.amount)]}>{item.amount}</Text>
             </View>
           ))}
         </View>
