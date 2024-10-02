@@ -510,7 +510,7 @@ async function getSavingsData() {
     const sheets = google.sheets({ version: 'v4', auth: client });
 
     try {
-        const range = 'Dashboard!C31:E37'; // Adjust this range to fetch necessary cells
+        const range = 'Dashboard!C30:E40'; // Adjust this range to include the cells above for names
 
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId: process.env.SPREADSHEET_ID,
@@ -521,15 +521,17 @@ async function getSavingsData() {
             throw new Error("No savings data found in Google Sheets");
         }
 
-        // Ensure you map the exact savings data from the appropriate rows/columns
         const savingsData = {
-            emergency: response.data.values[0][0] || '0',  // C31
-            general: response.data.values[0][2] || '0',    // E31
-            future: response.data.values[0][4] || '0',     // G31
-            treatYoSelf: response.data.values[3][0] || '0',// C34
-            vehicle: response.data.values[3][2] || '0',    // E34
-            giftsDonations: response.data.values[3][4] || '0', // G34
-            travelVacation: response.data.values[6][0] || '0', // C37
+            emergency: { name: response.data.values[0][0], amount: response.data.values[1][0] || '0' },  // C30 -> name, C31 -> amount
+            general: { name: response.data.values[0][2], amount: response.data.values[1][2] || '0' },    // E30 -> name, E31 -> amount
+            future: { name: response.data.values[0][4], amount: response.data.values[1][4] || '0' },     // G30 -> name, G31 -> amount
+            treatYoSelf: { name: response.data.values[3][0], amount: response.data.values[4][0] || '0' },// C33 -> name, C34 -> amount
+            vehicle: { name: response.data.values[3][2], amount: response.data.values[4][2] || '0' },    // E33 -> name, E34 -> amount
+            giftsDonations: { name: response.data.values[3][4], amount: response.data.values[4][4] || '0' }, // G33 -> name, G34 -> amount
+            travelVacation: { name: response.data.values[6][0], amount: response.data.values[7][0] || '0' }, // C36 -> name, C37 -> amount
+            health: { name: response.data.values[6][2], amount: response.data.values[7][2] || '0' },      // E36 -> name, E37 -> amount
+            taxes: { name: response.data.values[6][4], amount: response.data.values[7][4] || '0' },       // G36 -> name, G37 -> amount
+            clothing: { name: response.data.values[9][0], amount: response.data.values[10][0] || '0' },   // C39 -> name, C40 -> amount
         };
 
         return savingsData;
