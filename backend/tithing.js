@@ -25,7 +25,7 @@ async function automateDonation(tithingAmount = '1') {
         const password = process.env.CHURCH_PASSWORD;
         await page.type('#input53', password);
         await page.click('input.button-primary[type="submit"]');
-        await page.waitForNavigation();
+        await page.waitForNavigation(); // This is the line I removed in the other tithing file (separate git repo) to fix the error. But this line was in a different place in that file. 
         console.log('Login successful, navigating to donations page.');
         await page.goto('https://donations.churchofjesuschrist.org/donations/#/donation/step1', { waitUntil: 'networkidle2' });
     }
