@@ -10,6 +10,11 @@ import CurrentBudgets from './pages/CurrentBudgets';
 import CurrentSavings from './pages/CurrentSavings';
 import UncategorizedTransactions from './pages/UncategorizedTransactions';
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: 'YOUR_SENTRY_DSN',
+});
 
 // Set up Notification Handler
 Notifications.setNotificationHandler({
@@ -81,40 +86,27 @@ export default function App() {
   useEffect(() => {
     const updatePushToken = async () => {
       const newToken = await registerForPushNotificationsAsync();
-
+  
       if (newToken) {
+        setExpoPushToken(newToken); // Store it in state to display in UI
         const storedToken = await AsyncStorage.getItem('pushToken');
-
+        console.log('📌 Stored Token:', storedToken);
+        console.log('📌 New Token:', newToken);
+  
         if (storedToken !== newToken) {
-          console.log('New device detected, updating token...');
+          console.log('🔄 New device detected, updating token...');
           await AsyncStorage.setItem('pushToken', newToken);
           await sendTokenToServer(newToken); // Send only if different
         }
       }
     };
-
+  
     updatePushToken();
-
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      console.log('Notification received:', notification);
-    });
-
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log('Notification response received:', response);
-    });
-
-    return () => {
-      if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
-      }
-      if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
-      }
-    };
-  }, []);
+  }, []);  
 
   const sendTokenToServer = async (token) => {
     try {
+      console.log('🚀 Sending token to server:', token);
       const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/api/token', {
         method: 'POST',
         headers: {
@@ -123,16 +115,17 @@ export default function App() {
         body: JSON.stringify({ token }),
       });
   
-      if (!response.ok) {
-        throw new Error('Failed to send token to server');
-      }
+      const responseData = await response.json();
+      console.log('✅ Server Response:', responseData);
   
-      console.log('Push token updated successfully:', token);
+      if (!response.ok) {
+        throw new Error('❌ Failed to send token to server');
+      }
     } catch (error) {
-      console.error('Failed to send token to server:', error);
+      console.error('❌ Error sending token:', error);
     }
-  };  
-
+  };
+  
   return (
     <NavigationContainer>
       <Tab.Navigator
@@ -159,45 +152,56 @@ export default function App() {
         <Tab.Screen name="Savings" component={SavingsStack} />
         <Tab.Screen name="Uncategorized" component={UncategorizedStack} />
       </Tab.Navigator>
+      <View style={{ padding: 20 }}>
+        <Text style={{ fontSize: 16 }}>Push Token:</Text>
+        <Text selectable style={{ fontWeight: 'bold' }}>
+          {expoPushToken || 'Fetching...'}
+        </Text>
+        <Button title="Check Console" onPress={() => console.log('🔹 Push Token:', expoPushToken)} />
+      </View>
     </NavigationContainer>
   );
 }
 
 async function registerForPushNotificationsAsync() {
   let token;
-  if (Device.isDevice) {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
+  try {
+    if (Device.isDevice) {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
 
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== 'granted') {
+        console.error('❌ Notification permissions not granted');
+        alert('Failed to get push token for push notification!');
+        return null;
+      }
+
+      token = (await Notifications.getExpoPushTokenAsync({
+        projectId: 'd00c5c45-b878-4373-b1cd-0b6a67e1e3e7',
+      })).data;
+
+      console.log('✅ New push token received:', token);
+    } else {
+      alert('Must use a physical device for Push Notifications');
+      return null;
     }
 
-    if (finalStatus !== 'granted') {
-      alert('Failed to get push token for push notification!');
-      return null; // Return null instead of undefined
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+      });
     }
-
-    token = (await Notifications.getExpoPushTokenAsync({
-      projectId: 'd00c5c45-b878-4373-b1cd-0b6a67e1e3e7',
-    })).data;
-
-    console.log('New push token:', token);
-  } else {
-    alert('Must use physical device for Push Notifications');
-    return null;
+  } catch (error) {
+    console.error('❌ Error fetching push token:', error);
   }
 
-  // Ensure notification channel is set for Android
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#FF231F7C',
-    });
-  }
-
-  return token; // Ensure token is always returned correctly
+  return token;
 }
