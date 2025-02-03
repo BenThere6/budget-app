@@ -417,6 +417,11 @@ async function notifyCategoryTransaction(category, amount) {
 }
 
 async function sendPushNotification(token, message, data = {}) {
+    if (!Expo.isExpoPushToken(token)) {
+        console.error('Invalid Expo push token:', token);
+        return;
+    }
+
     const messages = [{
         to: token,
         sound: 'default',
@@ -424,11 +429,13 @@ async function sendPushNotification(token, message, data = {}) {
         data: data,
     }];
 
+    console.log('Sending push notification:', messages);
+
     try {
         const ticketChunk = await expo.sendPushNotificationsAsync(messages);
-        console.log(ticketChunk);
+        console.log('Expo push notification response:', ticketChunk);
     } catch (error) {
-        console.error(error);
+        console.error('Error sending push notification:', error);
     }
 }
 
