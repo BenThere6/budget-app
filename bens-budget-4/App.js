@@ -9,6 +9,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import CurrentBudgets from './pages/CurrentBudgets';
 import CurrentSavings from './pages/CurrentSavings';
 import UncategorizedTransactions from './pages/UncategorizedTransactions';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
 
 // Set up Notification Handler
 Notifications.setNotificationHandler({
@@ -78,12 +79,21 @@ export default function App() {
   const responseListener = useRef();
 
   useEffect(() => {
-    registerForPushNotificationsAsync().then(token => {
-      setExpoPushToken(token);
-      if (token) {
-        sendTokenToServer(token); // Store the token on your backend server
+    const updatePushToken = async () => {
+      const newToken = await registerForPushNotificationsAsync();
+
+      if (newToken) {
+        const storedToken = await AsyncStorage.getItem('pushToken');
+
+        if (storedToken !== newToken) {
+          console.log('New device detected, updating token...');
+          await AsyncStorage.setItem('pushToken', newToken);
+          await sendTokenToServer(newToken); // Send only if different
+        }
       }
-    });
+    };
+
+    updatePushToken();
 
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
       console.log('Notification received:', notification);
@@ -105,17 +115,23 @@ export default function App() {
 
   const sendTokenToServer = async (token) => {
     try {
-      await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/api/token', {
+      const response = await fetch('https://budgetapp-dc6bcd57eaee.herokuapp.com/api/token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ token }),
       });
+  
+      if (!response.ok) {
+        throw new Error('Failed to send token to server');
+      }
+  
+      console.log('Push token updated successfully:', token);
     } catch (error) {
       console.error('Failed to send token to server:', error);
     }
-  };
+  };  
 
   return (
     <NavigationContainer>
@@ -160,20 +176,22 @@ async function registerForPushNotificationsAsync() {
 
     if (finalStatus !== 'granted') {
       alert('Failed to get push token for push notification!');
-      return;
+      return null; // Return null instead of undefined
     }
 
     token = (await Notifications.getExpoPushTokenAsync({
       projectId: 'd00c5c45-b878-4373-b1cd-0b6a67e1e3e7',
     })).data;
 
-    console.log(token);
+    console.log('New push token:', token);
   } else {
     alert('Must use physical device for Push Notifications');
+    return null;
   }
 
+  // Ensure notification channel is set for Android
   if (Platform.OS === 'android') {
-    Notifications.setNotificationChannelAsync('default', {
+    await Notifications.setNotificationChannelAsync('default', {
       name: 'default',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
@@ -181,5 +199,5 @@ async function registerForPushNotificationsAsync() {
     });
   }
 
-  return token;
+  return token; // Ensure token is always returned correctly
 }
