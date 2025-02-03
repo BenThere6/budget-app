@@ -301,11 +301,11 @@ async function processEmails() {
         }
 
         if (newUncategorizedCount > 0) {
-            const token = process.env.PUSH_TOKEN; // Retrieve the saved token from your database
-            sendPushNotification(token, `${newUncategorizedCount} new uncategorized transaction(s) added.`);
-            console.log('Summary notification sent for new uncategorized transactions.');
+            console.log(`📢 Sending summary notification for ${newUncategorizedCount} new uncategorized transactions.`);
+            const token = process.env.PUSH_TOKEN;
+            await sendPushNotification(token, `${newUncategorizedCount} new uncategorized transaction(s) added.`);
         }
-
+        
     } catch (err) {
         console.error('Error during automatic email check:', err);
     }
@@ -429,13 +429,13 @@ async function sendPushNotification(token, message, data = {}) {
         data: data,
     }];
 
-    console.log('Sending push notification:', messages);
+    console.log('🚀 Preparing to send push notification:', messages); // Log before sending
 
     try {
         const ticketChunk = await expo.sendPushNotificationsAsync(messages);
-        console.log('Expo push notification response:', ticketChunk);
+        console.log('✅ Expo push notification response:', ticketChunk); // Log the response
     } catch (error) {
-        console.error('Error sending push notification:', error);
+        console.error('❌ Error sending push notification:', error);
     }
 }
 
