@@ -10,11 +10,6 @@ import CurrentBudgets from './pages/CurrentBudgets';
 import CurrentSavings from './pages/CurrentSavings';
 import UncategorizedTransactions from './pages/UncategorizedTransactions';
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
-import * as Sentry from '@sentry/react-native';
-
-Sentry.init({
-  dsn: 'YOUR_SENTRY_DSN',
-});
 
 // Set up Notification Handler
 Notifications.setNotificationHandler({
