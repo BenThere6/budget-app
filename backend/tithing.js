@@ -2,6 +2,8 @@ const puppeteer = require('puppeteer');
 require('dotenv').config();
 
 async function automateDonation(tithingAmount = '1') {
+    console.log(`Tithing amount received: ${tithingAmount}`);
+
     const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
 
@@ -25,7 +27,13 @@ async function automateDonation(tithingAmount = '1') {
         const password = process.env.CHURCH_PASSWORD;
         await page.type('#input53', password);
         await page.click('input.button-primary[type="submit"]');
-        await page.waitForNavigation(); // This is the line I removed in the other tithing file (separate git repo) to fix the error. But this line was in a different place in that file. 
+
+        const loginFailed = await checkForLoginError(page, browser);
+        if (loginFailed) return;
+
+        // Optional short wait
+        await page.waitForTimeout(3000);
+
         console.log('Login successful, navigating to donations page.');
         await page.goto('https://donations.churchofjesuschrist.org/donations/#/donation/step1', { waitUntil: 'networkidle2' });
     }
@@ -109,7 +117,7 @@ async function automateDonation(tithingAmount = '1') {
 
         // Check if the final confirmation page is loaded
         const confirmationUrl = 'https://donations.churchofjesuschrist.org/donations/#/donation/thankyou';
-        const confirmationMessageSelector = 'h1.confirmation-message';  // Example selector for confirmation message
+        const confirmationMessageSelector = 'h2[data-qa="confirmationText"]';  // Example selector for confirmation message
 
         try {
             // Wait for either the confirmation URL or a confirmation message
@@ -127,6 +135,20 @@ async function automateDonation(tithingAmount = '1') {
 
     await browser.close();
     console.log('Donation process completed and browser closed.');
+}
+
+async function checkForLoginError(page, browser) {
+    try {
+        const errorElement = await page.waitForSelector('div.okta-form-infobox-error.infobox.infobox-error', { timeout: 5000 });
+        if (errorElement) {
+            const errorMessage = await page.$eval('div.okta-form-infobox-error.infobox.infobox-error p', el => el.textContent);
+            console.error(`Login failed: ${errorMessage}`);
+            await browser.close();
+            return true;
+        }
+    } catch {
+        return false;  // No error detected
+    }
 }
 
 // Export the function for use in another file
